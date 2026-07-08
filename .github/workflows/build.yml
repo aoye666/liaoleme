@@ -1,0 +1,83 @@
+name: Build & Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.29.2'
+          channel: stable
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: liaoleme-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: liaoleme-release
+          path: ./
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          echo "tag=v$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: 撸了么 ${{ steps.tag.outputs.tag }}
+          body: |
+            ## 📱 撸了么 - 每日打卡自控助手
+            
+            ### 功能特性
+            - 🎡 随机转盘打卡（撸/不撸）
+            - ✋ 手动选择按钮
+            - 📜 每日随机一言
+            - 📊 GitHub 风格热力图统计
+            - 📈 折线图趋势分析
+            - ⏰ 每日20:00通知提醒
+            - ⬛ 黑白配色主题
+            
+            ### 安装说明
+            1. 下载 `app-release.apk`
+            2. 安装到 Android 手机
+            3. 允许通知权限
+          files: app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
