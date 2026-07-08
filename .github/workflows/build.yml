@@ -28,20 +28,7 @@ jobs:
           flutter create . --platforms android --project-name liaoleme --org com.example
 
       - name: Fix Android build config
-        run: |
-          cat > /tmp/fix_android.py << 'PYEOF'
-import re
-with open("android/app/build.gradle.kts", "r") as f:
-    c = f.read()
-c = c.replace('ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')
-c = c.replace('compileOptions {', 'compileOptions {\n    isCoreLibraryDesugaringEnabled = true')
-if "coreLibraryDesugaring" not in c:
-    c += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
-with open("android/app/build.gradle.kts", "w") as f:
-    f.write(c)
-print(open("android/app/build.gradle.kts").read())
-PYEOF
-          python3 /tmp/fix_android.py
+        run: python3 fix_android.py
 
       - run: flutter pub get
 
