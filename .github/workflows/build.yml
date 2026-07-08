@@ -32,14 +32,33 @@ jobs:
 
       - name: Patch Android build config
         run: |
-          # 修复 NDK 版本（插件要求 27.0.12077973）
-          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
-          # 启用 core library desugaring（flutter_local_notifications 需要）
-          sed -i '/compileOptions {/a\        isCoreLibraryDesugaringEnabled = true' android/app/build.gradle.kts
-          # 添加 desugar 依赖
-          sed -i '/dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' android/app/build.gradle.kts
+          BUILD="${{ github.workspace }}/android/app/build.gradle.kts"
+
+          # 1) 设置 NDK 版本为 27.0.12077973
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' "$BUILD"
+
+          # 2) compileOptions 中启用 core library desugaring
+          sed -i '/compileOptions {/a\    isCoreLibraryDesugaringEnabled = true' "$BUILD"
+
+          # 3) 用 Python 在 android block 的末尾、顶层 dependencies 前插入 desugar 依赖
+          python3 -c "
+import re
+with open('$BUILD', 'r') as f:
+    content = f.read()
+
+# 在 flutter {} 块之后添加 dependencies 块（如果还没有的话）
+if 'coreLibraryDesugaring' not in content:
+    content = content.rstrip()
+    content += '''
+dependencies {
+    coreLibraryDesugaring(\"com.android.tools:desugar_jdk_libs:2.1.4\")
+}
+'''
+with open('$BUILD', 'w') as f:
+    f.write(content)
+"
           echo "=== Patched build.gradle.kts ==="
-          cat android/app/build.gradle.kts
+          cat "$BUILD"
 
       - name: Get dependencies
         run: flutter pub get
