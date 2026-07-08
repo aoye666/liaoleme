@@ -1,0 +1,27 @@
+name: liaoleme
+description: "撸了么 - 每日打卡自控助手"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  fl_chart: ^0.70.2
+  shared_preferences: ^2.3.3
+  flutter_local_notifications: ^18.0.1
+  intl: ^0.20.2
+  http: ^1.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
