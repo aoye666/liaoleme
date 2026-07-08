@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -27,40 +27,21 @@ jobs:
           rm -rf android
           flutter create . --platforms android --project-name liaoleme --org com.example
 
-      - name: Fix build config with Python
+      - name: Fix Android build config
         run: |
-          python3 << 'PYEOF'
+          cat > /tmp/fix_android.py << 'PYEOF'
 import re
-
 with open("android/app/build.gradle.kts", "r") as f:
-    content = f.read()
-
-# Fix ndkVersion
-content = content.replace(
-    'ndkVersion = flutter.ndkVersion',
-    'ndkVersion = "27.0.12077973"'
-)
-
-# Add isCoreLibraryDesugaringEnabled to compileOptions
-content = content.replace(
-    'compileOptions {',
-    'compileOptions {\n    isCoreLibraryDesugaringEnabled = true'
-)
-
-# Add dependencies block at the end if not present
-if "coreLibraryDesugaring" not in content:
-    content += """
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}
-"""
-
+    c = f.read()
+c = c.replace('ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')
+c = c.replace('compileOptions {', 'compileOptions {\n    isCoreLibraryDesugaringEnabled = true')
+if "coreLibraryDesugaring" not in c:
+    c += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
 with open("android/app/build.gradle.kts", "w") as f:
-    f.write(content)
-
-print("=== Patched build.gradle.kts ===")
+    f.write(c)
 print(open("android/app/build.gradle.kts").read())
 PYEOF
+          python3 /tmp/fix_android.py
 
       - run: flutter pub get
 
@@ -77,7 +58,7 @@ PYEOF
     permissions:
       contents: write
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/download-artifact@v4
         with:
