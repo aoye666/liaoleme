@@ -30,35 +30,55 @@ jobs:
           rm -rf android
           flutter create . --platforms android --project-name liaoleme --org com.example
 
-      - name: Patch Android build config
+      - name: Write correct build.gradle.kts
         run: |
-          BUILD="${{ github.workspace }}/android/app/build.gradle.kts"
-
-          # 1) 设置 NDK 版本为 27.0.12077973
-          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' "$BUILD"
-
-          # 2) compileOptions 中启用 core library desugaring
-          sed -i '/compileOptions {/a\    isCoreLibraryDesugaringEnabled = true' "$BUILD"
-
-          # 3) 用 Python 在 android block 的末尾、顶层 dependencies 前插入 desugar 依赖
-          python3 -c "
-import re
-with open('$BUILD', 'r') as f:
-    content = f.read()
-
-# 在 flutter {} 块之后添加 dependencies 块（如果还没有的话）
-if 'coreLibraryDesugaring' not in content:
-    content = content.rstrip()
-    content += '''
-dependencies {
-    coreLibraryDesugaring(\"com.android.tools:desugar_jdk_libs:2.1.4\")
+          cat > android/app/build.gradle.kts << 'KTS'
+plugins {
+    id("com.android.application")
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
 }
-'''
-with open('$BUILD', 'w') as f:
-    f.write(content)
-"
-          echo "=== Patched build.gradle.kts ==="
-          cat "$BUILD"
+
+android {
+    namespace = "com.example.liaoleme"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+
+    defaultConfig {
+        applicationId = "com.example.liaoleme"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+KTS
+          echo "=== Written build.gradle.kts ==="
+          cat android/app/build.gradle.kts
 
       - name: Get dependencies
         run: flutter pub get
