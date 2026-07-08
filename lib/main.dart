@@ -10,7 +10,12 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await _initNotifications();
+  // 通知初始化失败不崩 app，静默降级
+  try {
+    await _initNotifications();
+  } catch (e) {
+    debugPrint('通知初始化失败（已安全降级）: $e');
+  }
 
   runApp(const LiaoLeMeApp());
 }
@@ -50,12 +55,21 @@ Future<void> _initNotifications() async {
   await androidPlugin?.createNotificationChannel(channel);
 
   // Android 13+ 运行时通知权限请求
-  if (Platform.isAndroid) {
-    await androidPlugin?.requestNotificationsPermission();
+  // 安全调用：HarmonyOS 兼容（Platform.isAndroid 可能返回 true 但请求不支持）
+  try {
+    if (Platform.isAndroid) {
+      await androidPlugin?.requestNotificationsPermission();
+    }
+  } catch (_) {
+    // HarmonyOS 兼容：忽略通知权限请求失败
   }
 
   // 调度每日通知
-  await scheduleDailyNotification();
+  try {
+    await scheduleDailyNotification();
+  } catch (e) {
+    debugPrint('通知调度失败（已安全降级）: $e');
+  }
 }
 
 // 调度每日打卡通知（20:00）

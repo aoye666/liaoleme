@@ -22,11 +22,23 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Future<void> _loadData() async {
-    final records = await _db.getRecentCheckins(90);
-    setState(() {
-      _records = records;
-      _isLoading = false;
-    });
+    try {
+      final records = await _db.getRecentCheckins(90);
+      if (mounted) {
+        setState(() {
+          _records = records;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('加载统计数据失败: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('加载失败，请稍后重试')),
+        );
+      }
+    }
   }
 
   @override

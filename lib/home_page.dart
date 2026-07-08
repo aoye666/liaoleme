@@ -33,44 +33,68 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadTodayStatus() async {
-    final today = _formatDate(DateTime.now());
-    final record = await _db.getCheckinByDate(today);
-    
-    if (record != null) {
-      setState(() {
-        _isCheckedIn = true;
-        _checkinResult = record['result'];
-        _checkinMethod = record['method'];
-        _todayCount = record['count'] ?? 0;
-      });
+    try {
+      final today = _formatDate(DateTime.now());
+      final record = await _db.getCheckinByDate(today);
+      
+      if (record != null) {
+        setState(() {
+          _isCheckedIn = true;
+          _checkinResult = record['result'];
+          _checkinMethod = record['method'];
+          _todayCount = record['count'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('加载今日状态失败: $e');
+      // 数据库异常降级：保持空状态，用户仍然可以正常打卡
     }
   }
 
   void _onSpinComplete(String result) async {
-    final today = _formatDate(DateTime.now());
-    await _db.insertCheckin(date: today, method: 'spin', result: result);
-    
-    setState(() {
-      _isSpinning = false;
-      _isCheckedIn = true;
-      _checkinResult = result;
-      _checkinMethod = 'spin';
-    });
-    
-    _showResultDialog(result);
+    try {
+      final today = _formatDate(DateTime.now());
+      await _db.insertCheckin(date: today, method: 'spin', result: result);
+      
+      setState(() {
+        _isSpinning = false;
+        _isCheckedIn = true;
+        _checkinResult = result;
+        _checkinMethod = 'spin';
+      });
+      
+      _showResultDialog(result);
+    } catch (e) {
+      debugPrint('打卡保存失败: $e');
+      if (mounted) {
+        setState(() => _isSpinning = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存失败，请重试')),
+        );
+      }
+    }
   }
 
   void _onButtonSelect(String result) async {
-    final today = _formatDate(DateTime.now());
-    await _db.insertCheckin(date: today, method: 'button', result: result);
-    
-    setState(() {
-      _isCheckedIn = true;
-      _checkinResult = result;
-      _checkinMethod = 'button';
-    });
-    
-    _showResultDialog(result);
+    try {
+      final today = _formatDate(DateTime.now());
+      await _db.insertCheckin(date: today, method: 'button', result: result);
+      
+      setState(() {
+        _isCheckedIn = true;
+        _checkinResult = result;
+        _checkinMethod = 'button';
+      });
+      
+      _showResultDialog(result);
+    } catch (e) {
+      debugPrint('打卡保存失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('保存失败，请重试')),
+        );
+      }
+    }
   }
 
   void _showResultDialog(String result) {

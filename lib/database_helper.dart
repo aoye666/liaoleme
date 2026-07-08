@@ -11,8 +11,14 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
+    try {
+      _database = await _initDatabase();
+      return _database!;
+    } catch (e) {
+      // 数据库初始化失败时清空缓存，允许重试
+      _database = null;
+      rethrow;
+    }
   }
 
   Future<Database> _initDatabase() async {
@@ -21,6 +27,10 @@ class DatabaseHelper {
       path,
       version: 1,
       onCreate: _onCreate,
+      onConfigure: (db) async {
+        // 使用 DELETE 日志模式，防止异常退出导致 WAL 文件损坏
+        await db.execute('PRAGMA journal_mode=DELETE');
+      },
     );
   }
 
