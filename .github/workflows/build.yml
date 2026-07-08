@@ -30,6 +30,17 @@ jobs:
           rm -rf android
           flutter create . --platforms android --project-name liaoleme --org com.example
 
+      - name: Patch Android build config
+        run: |
+          # 修复 NDK 版本（插件要求 27.0.12077973）
+          sed -i 's/ndkVersion = flutter.ndkVersion/ndkVersion = "27.0.12077973"/' android/app/build.gradle.kts
+          # 启用 core library desugaring（flutter_local_notifications 需要）
+          sed -i '/compileOptions {/a\        isCoreLibraryDesugaringEnabled = true' android/app/build.gradle.kts
+          # 添加 desugar 依赖
+          sed -i '/dependencies {/a\    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")' android/app/build.gradle.kts
+          echo "=== Patched build.gradle.kts ==="
+          cat android/app/build.gradle.kts
+
       - name: Get dependencies
         run: flutter pub get
 
@@ -45,44 +56,24 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: github.ref == 'refs/heads/main'
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download APK
+      - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
           name: liaoleme-release
-          path: ./
 
-      - name: Generate release tag
-        id: tag
-        run: |
-          echo "tag=v$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'v%Y.%m.%d.%H%M')" >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Create Release & Upload APK
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: 撸了么 ${{ steps.tag.outputs.tag }}
-          body: |
-            ## 📱 撸了么 - 每日打卡自控助手
-            
-            ### 功能特性
-            - 🎡 随机转盘打卡（撸/不撸）
-            - ✋ 手动选择按钮
-            - 📜 每日随机一言
-            - 📊 GitHub 风格热力图统计
-            - 📈 折线图趋势分析
-            - ⏰ 每日20:00通知提醒
-            - ⬛ 黑白配色主题
-            
-            ### 安装说明
-            1. 下载 `app-release.apk`
-            2. 安装到 Android 手机
-            3. 允许通知权限
+          tag_name: ${{ steps.date.outputs.date }}
+          name: "撸了么 ${{ steps.date.outputs.date }}"
           files: app-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
