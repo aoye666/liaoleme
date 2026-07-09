@@ -104,7 +104,7 @@ class _QuoteSectionState extends State<QuoteSection>
                     color: context.appColors.accentSubtle,
                     borderRadius: AppShapes.borderRadiusSm,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
                       '✦',
                       style: TextStyle(

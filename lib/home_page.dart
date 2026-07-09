@@ -171,7 +171,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             Text(
               isSuccess ? '克制成功，继续保持' : '记录已保存',
-              style: const TextStyle(color: _colors.textPrimary),
+              style: TextStyle(color: _colors.textPrimary),
             ),
           ],
         ),
@@ -294,7 +294,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 color: _colors.accent,
                 borderRadius: AppShapes.borderRadiusSm,
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'L',
                   style: TextStyle(
@@ -403,7 +403,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         color: _colors.surface,
         borderRadius: AppShapes.borderRadius,
         border: Border.all(color: _colors.border),
-        boxShadow: AppShadows.card,
+        boxShadow: AppShadows.card(context.isDark),
       ),
       child: Column(
         children: [

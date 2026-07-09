@@ -30,55 +30,51 @@ class TimeGatedInput extends StatelessWidget {
         border: Border.all(color: context.appColors.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 标题行
+          // 标题
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Icon(
+                Icons.numbers,
+                color: context.appColors.accent,
+                size: 20,
+              ),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 '今日次数',
-                style: AppText.cardTitle,
-              ),
-              if (canInput)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.appColors.accentSubtle,
-                    borderRadius: AppShapes.borderRadiusSm,
-                  ),
-                  child: Text(
-                    '可编辑',
-                    style: AppText.caption.copyWith(
-                      color: context.appColors.accent,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                style: AppText.cardTitle.copyWith(
+                  color: context.appColors.textPrimary,
                 ),
+              ),
             ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            canInput ? '20:00后可记录' : '打卡后开放',
+            style: AppText.caption.copyWith(
+              color: context.appColors.textMuted,
+            ),
           ),
 
           const SizedBox(height: AppSpacing.lg),
 
           if (canInput)
-            _buildInputArea()
+            _buildInputArea(context)
           else
-            _buildLockedArea(),
+            _buildLockedArea(context),
         ],
       ),
     );
   }
 
   // 可输入区域
-  Widget _buildInputArea() {
+  Widget _buildInputArea(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // 减少按钮
         _buildCountButton(
+          context: context,
           icon: Icons.remove,
           onPressed: currentCount > 0
               ? () {
@@ -115,6 +111,7 @@ class TimeGatedInput extends StatelessWidget {
 
         // 增加按钮
         _buildCountButton(
+          context: context,
           icon: Icons.add,
           onPressed: () {
             HapticFeedback.lightImpact();
@@ -126,6 +123,7 @@ class TimeGatedInput extends StatelessWidget {
   }
 
   Widget _buildCountButton({
+    required BuildContext context,
     required IconData icon,
     required VoidCallback? onPressed,
   }) {
@@ -154,23 +152,24 @@ class TimeGatedInput extends StatelessWidget {
   }
 
   // 锁定区域
-  Widget _buildLockedArea() {
+  Widget _buildLockedArea(BuildContext context) {
     String lockText;
     String lockSubtext;
     IconData lockIcon;
 
     if (!isCheckedIn) {
-      lockText = '请先完成打卡';
-      lockSubtext = '打卡后即可记录次数';
-      lockIcon = Icons.lock_outline_rounded;
+      lockText = '先打卡才能输入次数';
+      lockSubtext = '点击上方按钮完成打卡';
+      lockIcon = Icons.lock_outline;
     } else {
-      lockText = '晚8点后开放';
-      lockSubtext = '当前时间未到 20:00';
-      lockIcon = Icons.schedule_rounded;
+      lockText = '晚上8点后开放';
+      lockSubtext = '20:00 - 23:59 可记录';
+      lockIcon = Icons.schedule;
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: context.appColors.surfaceElevated.withOpacity(0.5),
         borderRadius: AppShapes.borderRadiusSm,
@@ -180,20 +179,22 @@ class TimeGatedInput extends StatelessWidget {
         children: [
           Icon(
             lockIcon,
-            size: 28,
             color: context.appColors.textMuted,
+            size: 28,
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             lockText,
-            style: AppText.bodyStrong.copyWith(
+            style: AppText.body.copyWith(
               color: context.appColors.textMuted,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             lockSubtext,
-            style: AppText.caption,
+            style: AppText.caption.copyWith(
+              color: context.appColors.textMuted,
+            ),
           ),
         ],
       ),

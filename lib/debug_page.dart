@@ -109,7 +109,7 @@ class _DebugPageState extends State<DebugPage> {
                 color: context.appColors.negativeSubtle,
                 borderRadius: AppShapes.borderRadiusSm,
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   Icons.bug_report,
                   size: 14,

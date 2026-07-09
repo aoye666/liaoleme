@@ -61,7 +61,7 @@ class _StatsPageState extends State<StatsPage> {
         ),
       ),
       body: _isLoading
-          ? const Center(
+          ? Center(
               child: CircularProgressIndicator(
                 color: context.appColors.accent,
                 strokeWidth: 2,
@@ -98,7 +98,7 @@ class _StatsPageState extends State<StatsPage> {
         color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
         border: Border.all(color: context.appColors.border),
-        boxShadow: AppShadows.card,
+        boxShadow: AppShadows.card(context.isDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
