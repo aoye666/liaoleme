@@ -5,12 +5,12 @@ import 'debug_helper.dart';
 /// 数据库助手类 - 单例模式，全局共享数据库连接
 /// 
 /// 表结构 checkins:
-/// - id: 自增主键
-/// - date: 日期 (yyyy-MM-dd)
-/// - method: 打卡方式 ('spin'=转盘, 'button'=按钮)
-/// - result: 打卡结果 ('撸'/'不撸')
-/// - count: 当日次数（仅在 isCheckedIn=true 且 hour>=20 时可编辑）
-/// - timestamp: 打卡时间戳
+/// - id - 自增主键
+/// - date - 日期 (yyyy-MM-dd)
+/// - method - 打卡方式 ('spin'=转盘, 'button'=按钮)
+/// - result - 打卡结果 ('撸'/'不撸')
+/// - count - 当日次数（仅在 isCheckedIn=true 且 hour>=20 时可编辑）
+/// - timestamp - 打卡时间戳
 class DatabaseHelper {
   // 单例模式
   static final DatabaseHelper _instance = DatabaseHelper._internal();
