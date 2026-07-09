@@ -103,6 +103,7 @@ Future<void> _initNotifications() async {
 }
 
 // 调度每日打卡通知（20:00）
+// v18 只支持 periodicallyShow，不再有 showDailyAtTime 和 Time 类
 Future<void> scheduleDailyNotification() async {
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(
@@ -127,21 +128,9 @@ Future<void> scheduleDailyNotification() async {
       details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
     );
+    DebugHelper.track('notif: periodicallyShow 成功');
   } catch (e) {
-    DebugHelper.warn('periodicallyShow 失败: $e');
-    // 降级：尝试 showDailyAtTime（v18 可能不存在）
-    try {
-      await flutterLocalNotificationsPlugin.showDailyAtTime(
-        0,
-        '撸了么',
-        '今天的结果是什么？来打个卡吧',
-        const Time(20, 0, 0),
-        details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      );
-    } catch (e2) {
-      DebugHelper.error('showDailyAtTime 也失败: $e2');
-    }
+    DebugHelper.error('通知调度失败: $e');
   }
 }
 
