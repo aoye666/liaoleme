@@ -30,6 +30,14 @@ jobs:
       - name: Fix Android build config
         run: python3 fix_android.py
 
+      - name: Setup signing keystore
+        run: |
+          echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/liaoleme.jks
+          echo "KEYSTORE_PATH=android/liaoleme.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_PASSWORD=${{ secrets.LIAOLEME_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+          echo "KEY_ALIAS=${{ secrets.LIAOLEME_KEY_ALIAS }}" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=${{ secrets.LIAOLEME_KEY_PASSWORD }}" >> $GITHUB_ENV
+
       - run: flutter pub get
 
       - run: flutter build apk --release
@@ -51,13 +59,15 @@ jobs:
         with:
           name: liaoleme-release
 
-      - name: Tag & Release
-        id: date
-        run: echo "date=v$(date +%Y.%m.%d.%H%M)" >> "$GITHUB_OUTPUT"
+      - name: Get version from pubspec
+        id: version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.date.outputs.date }}
-          name: 撸了么 ${{ steps.date.outputs.date }}
+          tag_name: v${{ steps.version.outputs.version }}
+          name: 撸了么 v${{ steps.version.outputs.version }}
           files: app-release.apk
           generate_release_notes: true

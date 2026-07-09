@@ -2,8 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'theme.dart';
 
-// 转盘组件 - taste-skill 设计重构
-// 黑白配色保留，但使用 zinc 调色板，更柔和
+// 转盘组件 - 带可见文字标签
 class SpinWheel extends StatefulWidget {
   final bool isDisabled;
   final Function(String) onSpinComplete;
@@ -51,7 +50,6 @@ class _SpinWheelState extends State<SpinWheel>
     widget.onSpinStart();
     setState(() => _isSpinning = true);
 
-    // 随机旋转 5-8 圈 + 随机停止位置
     final double finalRotation = 5 + _random.nextDouble() * 3;
 
     _animation = Tween<double>(begin: 0, end: finalRotation).animate(
@@ -60,7 +58,6 @@ class _SpinWheelState extends State<SpinWheel>
 
     _controller.reset();
     _controller.forward().then((_) {
-      // 根据最终停止位置判定结果
       final double normalizedRotation = finalRotation % 1.0;
       final String result = normalizedRotation < 0.5 ? '不撸' : '撸';
 
@@ -74,12 +71,12 @@ class _SpinWheelState extends State<SpinWheel>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 顶部指针（指向转盘）
+        // 顶部指针
         TrianglePointer(isDisabled: widget.isDisabled),
 
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
 
-        // 转盘主体
+        // 转盘主体 - 带文字标签
         GestureDetector(
           onTap: _spin,
           child: AnimatedBuilder(
@@ -88,28 +85,32 @@ class _SpinWheelState extends State<SpinWheel>
               return Transform.rotate(
                 angle: _animation.value * 2 * pi,
                 child: Container(
-                  width: 200,
-                  height: 200,
+                  width: 220,
+                  height: 220,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: widget.isDisabled
                           ? AppColors.border
-                          : AppColors.textPrimary,
+                          : AppColors.accent,
                       width: 2,
                     ),
                     boxShadow: widget.isDisabled
                         ? []
                         : [
                             BoxShadow(
-                              color: AppColors.textPrimary.withOpacity(0.1),
-                              blurRadius: 20,
+                              color: AppColors.accent.withOpacity(0.15),
+                              blurRadius: 24,
                               spreadRadius: 2,
                             ),
                           ],
                   ),
-                  child: CustomPaint(
-                    painter: _WheelPainter(isDisabled: widget.isDisabled),
+                  child: ClipOval(
+                    child: CustomPaint(
+                      size: const Size(220, 220),
+                      painter: _WheelPainter(isDisabled: widget.isDisabled),
+                      child: _WheelLabels(isDisabled: widget.isDisabled),
+                    ),
                   ),
                 ),
               );
@@ -133,7 +134,7 @@ class _SpinWheelState extends State<SpinWheel>
   }
 }
 
-// 转盘绘制器
+// 转盘扇形绘制
 class _WheelPainter extends CustomPainter {
   final bool isDisabled;
 
@@ -144,9 +145,9 @@ class _WheelPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // 上半部分 = 不撸 (zinc-900 深)
-    final paintTop = Paint()
-      ..color = isDisabled ? AppColors.surfaceElevated : AppColors.wheelNo
+    // 左半 = 不撸 (深色)
+    final paintLeft = Paint()
+      ..color = isDisabled ? AppColors.surfaceElevated : AppColors.surface
       ..style = PaintingStyle.fill;
 
     canvas.drawArc(
@@ -154,12 +155,14 @@ class _WheelPainter extends CustomPainter {
       -pi / 2,
       pi,
       true,
-      paintTop,
+      paintLeft,
     );
 
-    // 下半部分 = 撸 (zinc-50 浅)
-    final paintBottom = Paint()
-      ..color = isDisabled ? AppColors.border : AppColors.wheelYes
+    // 右半 = 撸 (带色)
+    final paintRight = Paint()
+      ..color = isDisabled
+          ? AppColors.border
+          : AppColors.accentSubtle.withOpacity(0.3)
       ..style = PaintingStyle.fill;
 
     canvas.drawArc(
@@ -167,31 +170,61 @@ class _WheelPainter extends CustomPainter {
       pi / 2,
       pi,
       true,
-      paintBottom,
-    );
-
-    // 中心圆点
-    final centerDot = Paint()
-      ..color = AppColors.accent
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(center, 6, centerDot);
-
-    // 分隔线
-    final linePaint = Paint()
-      ..color = AppColors.accent.withOpacity(0.5)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-      Offset(center.dx, center.dy - radius + 4),
-      Offset(center.dx, center.dy + radius - 4),
-      linePaint,
+      paintRight,
     );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 转盘文字标签
+class _WheelLabels extends StatelessWidget {
+  final bool isDisabled;
+
+  const _WheelLabels({required this.isDisabled});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // 不撸 - 左半部分
+        Positioned(
+          left: 30,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: Text(
+              '不撸',
+              style: AppText.cardTitle.copyWith(
+                fontSize: 22,
+                color: isDisabled
+                    ? AppColors.textMuted
+                    : AppColors.accent,
+              ),
+            ),
+          ),
+        ),
+        // 撸 - 右半部分
+        Positioned(
+          right: 30,
+          top: 0,
+          bottom: 0,
+          child: Center(
+            child: Text(
+              '撸',
+              style: AppText.cardTitle.copyWith(
+                fontSize: 22,
+                color: isDisabled
+                    ? AppColors.border
+                    : AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // 三角形指针
@@ -203,7 +236,7 @@ class TrianglePointer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(20, 12),
+      size: const Size(24, 14),
       painter: _TrianglePainter(isDisabled: isDisabled),
     );
   }
@@ -227,6 +260,14 @@ class _TrianglePainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(path, paint);
+
+    // 描边
+    final strokePaint = Paint()
+      ..color = AppColors.background
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawPath(path, strokePaint);
   }
 
   @override
