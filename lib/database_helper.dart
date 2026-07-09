@@ -35,7 +35,13 @@ class DatabaseHelper {
       onCreate: _onCreate,
       onConfigure: (db) async {
         DebugHelper.track('DB: 配置日志模式为 DELETE');
-        await db.execute('PRAGMA journal_mode=DELETE');
+        // 注意：PRAGMA 返回结果集，必须用 rawQuery 而非 execute
+        try {
+          await db.rawQuery('PRAGMA journal_mode=DELETE');
+          DebugHelper.track('DB: 日志模式配置完成');
+        } catch (e) {
+          DebugHelper.warn('DB: 日志模式配置失败（不影响使用）: $e');
+        }
       },
     );
   }
