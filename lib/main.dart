@@ -92,8 +92,8 @@ Future<void> _initNotifications() async {
 }
 
 // 调度每日打卡通知（20:00）
-// 使用 showDailyAtTime 替代 periodicallyShow
-// 后者在部分 Android 设备上会触发 Java 泛型序列化 bug (Missing type parameter)
+// 注意：periodicallyShow 在部分设备上会触发 Java 泛型序列化日志错误
+// （Missing type parameter），但被 try-catch 包裹不会崩 app
 Future<void> scheduleDailyNotification() async {
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(
@@ -108,12 +108,11 @@ Future<void> scheduleDailyNotification() async {
     android: androidDetails,
   );
 
-  // showDailyAtTime 使用不同的内部调度路径，避免泛型序列化问题
-  await flutterLocalNotificationsPlugin.showDailyAtTime(
+  await flutterLocalNotificationsPlugin.periodicallyShow(
     1,
     '撸了么提醒',
     '该打卡啦！来看看今天的自己吧',
-    const Time(20, 0, 0),
+    RepeatInterval.daily,
     notificationDetails,
     androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
   );
