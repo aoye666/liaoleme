@@ -93,7 +93,6 @@ Future<void> _initNotifications() async {
 
 // 调度每日打卡通知（20:00）
 // 注意：periodicallyShow 在部分设备上会触发 Java 泛型序列化日志错误
-// （Missing type parameter），但被 try-catch 包裹不会崩 app
 Future<void> scheduleDailyNotification() async {
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 剪贴板
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'debug_helper.dart';
 import 'database_helper.dart';
 
-/// 调试信息页
-/// 展示启动日志、数据库状态、设备信息
+// 调试信息页 - 展示启动日志、数据库状态、设备信息
 class DebugPage extends StatefulWidget {
   const DebugPage({super.key});
 
@@ -15,16 +14,14 @@ class DebugPage extends StatefulWidget {
 
 class _DebugPageState extends State<DebugPage> {
   final DatabaseHelper _db = DatabaseHelper();
-  
+
   // 日志
   List<LogEntry> _logs = [];
   bool _autoScroll = true;
-  
+
   // 数据库信息
   String _dbInfo = '加载中...';
-  String _notifInfo = '加载中...';
-  String _deviceInfo = '';
-  
+
   // 日志文件
   String _logFilePath = '';
   String _logFileSize = '';
@@ -35,8 +32,8 @@ class _DebugPageState extends State<DebugPage> {
   void initState() {
     super.initState();
     _refresh();
-    
-    // 实时监听新日志
+
+  // 实时监听新日志
     _subscription = DebugHelper.stream.listen((entry) {
       if (mounted) {
         setState(() {
@@ -58,17 +55,14 @@ class _DebugPageState extends State<DebugPage> {
   Future<void> _refresh() async {
     // 加载日志
     _logs = DebugHelper.getRecentLogs(200);
-    
+
     // 加载数据库信息
     await _loadDbInfo();
-    
-    // 加载设备信息
-    _loadDeviceInfo();
-    
+
     // 日志文件信息
     _logFilePath = await DebugHelper.getLogPath();
     _logFileSize = await DebugHelper.getLogFileSize();
-    
+
     if (mounted) setState(() {});
   }
 
@@ -76,18 +70,18 @@ class _DebugPageState extends State<DebugPage> {
     try {
       final allRecords = await _db.getAllCheckins();
       final startSteps = DebugHelper.startupSteps;
-      
+
       _dbInfo = '✅ 数据库正常\n'
           '总记录数: ${allRecords.length}\n'
           '启动步骤: ${startSteps.length}步';
-          
+
       if (allRecords.isNotEmpty) {
         final first = allRecords.first;
         final last = allRecords.last;
         _dbInfo += '\n最早记录: ${first['date']}';
         _dbInfo += '\n最新记录: ${last['date']}';
-        
-        // 统计
+
+        // 统计不撸/撸
         final noCount = allRecords.where((r) => r['result'] == '不撸').length;
         final yesCount = allRecords.where((r) => r['result'] == '撸').length;
         _dbInfo += '\n不撸: $noCount / 撸: $yesCount';
@@ -97,16 +91,10 @@ class _DebugPageState extends State<DebugPage> {
     }
   }
 
-  void _loadDeviceInfo() {
-    final buffer = StringBuffer();
-    buffer.writeln('Android: ${const bool.hasEnvironment('android')}');
-    _deviceInfo = buffer.toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E), // 深色背景
+      backgroundColor: const Color(0xFF1A1A2E),
       appBar: AppBar(
         backgroundColor: const Color(0xFF16213E),
         title: const Text(
@@ -116,14 +104,6 @@ class _DebugPageState extends State<DebugPage> {
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: Icon(
-              _autoScroll ? Icons.vertical_align_bottom : Icons.vertical_align_center,
-              color: Colors.white70,
-            ),
-            onPressed: () => setState(() => _autoScroll = !_autoScroll),
-            tooltip: '自动滚动',
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             onPressed: _refresh,
           ),
@@ -132,15 +112,15 @@ class _DebugPageState extends State<DebugPage> {
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [
-          // 状态概览卡片
+          // 数据库状态
           _buildCard(
             '📊 数据库状态',
             _dbInfo,
             iconColor: _dbInfo.startsWith('✅') ? Colors.green : Colors.red,
           ),
           const SizedBox(height: 8),
-          
-          // 日志信息
+
+          // 日志文件
           _buildCard(
             '📁 日志文件',
             '路径: $_logFilePath\n大小: $_logFileSize',
@@ -156,7 +136,7 @@ class _DebugPageState extends State<DebugPage> {
           _buildLogList(),
           const SizedBox(height: 8),
 
-          // 底部操作按钮
+          // 操作按钮
           _buildActions(),
           const SizedBox(height: 40),
         ],
@@ -353,14 +333,13 @@ class _DebugPageState extends State<DebugPage> {
             onPressed: () async {
               final text = await DebugHelper.getLogText();
               if (text.isNotEmpty && mounted) {
-                // 真的复制到剪贴板
                 await Clipboard.setData(ClipboardData(text: text));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已复制 ${text.length} 字符到剪贴板')),
+                  SnackBar(content: Text('已复制 ${text.length} 字符')),
                 );
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('没有日志可复制')),
+                  const SnackBar(content: Text('无日志可复制')),
                 );
               }
             },
