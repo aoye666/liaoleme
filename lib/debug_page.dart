@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
+import 'theme.dart';
 import 'debug_helper.dart';
 import 'database_helper.dart';
 
-// 调试信息页 - 展示启动日志、数据库状态、设备信息
+// 调试信息页 - taste-skill 设计重构
 class DebugPage extends StatefulWidget {
   const DebugPage({super.key});
 
@@ -33,7 +34,7 @@ class _DebugPageState extends State<DebugPage> {
     super.initState();
     _refresh();
 
-  // 实时监听新日志
+    // 实时监听新日志
     _subscription = DebugHelper.stream.listen((entry) {
       if (mounted) {
         setState(() {
@@ -94,264 +95,234 @@ class _DebugPageState extends State<DebugPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF16213E),
-        title: const Text(
-          '🐛 调试面板',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: AppColors.negativeSubtle,
+                borderRadius: AppShapes.borderRadiusSm,
+              ),
+              child: const Center(
+                child: Icon(
+                  Icons.bug_report,
+                  size: 14,
+                  color: AppColors.negative,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            const Text('调试面板', style: AppText.title),
+          ],
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.textSecondary,
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white70),
+            icon: const Icon(Icons.refresh, size: 20),
+            color: AppColors.textSecondary,
             onPressed: _refresh,
           ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          // 数据库状态
-          _buildCard(
-            '📊 数据库状态',
-            _dbInfo,
-            iconColor: _dbInfo.startsWith('✅') ? Colors.green : Colors.red,
-          ),
-          const SizedBox(height: 8),
-
-          // 日志文件
-          _buildCard(
-            '📁 日志文件',
-            '路径: $_logFilePath\n大小: $_logFileSize',
-            iconColor: Colors.cyan,
-          ),
-          const SizedBox(height: 8),
-
-          // 启动步骤
-          _buildStartupSteps(),
-          const SizedBox(height: 8),
-
-          // 日志列表
-          _buildLogList(),
-          const SizedBox(height: 8),
-
-          // 操作按钮
-          _buildActions(),
-          const SizedBox(height: 40),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCard(String title, String content, {Color iconColor = Colors.white}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16213E),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            content,
-            style: TextStyle(
-              color: iconColor.withOpacity(0.9),
-              fontSize: 13,
-              fontFamily: 'monospace',
-              height: 1.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStartupSteps() {
-    final steps = DebugHelper.startupSteps;
-    if (steps.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16213E),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '🚀 启动步骤',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...List.generate(steps.length, (i) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${i + 1}.',
-                    style: TextStyle(
-                      color: Colors.green[300],
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      steps[i],
-                      style: TextStyle(
-                        color: Colors.green[200],
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ),
-                ],
+          // 数据库状态卡片
+          _buildSectionCard(
+            title: '数据库状态',
+            icon: Icons.storage_rounded,
+            child: Text(
+              _dbInfo,
+              style: AppText.body.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 13,
               ),
-            );
-          }),
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // 日志文件信息
+          _buildSectionCard(
+            title: '日志文件',
+            icon: Icons.description_rounded,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _logFilePath,
+                  style: AppText.caption.copyWith(fontFamily: 'monospace'),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  '大小: $_logFileSize',
+                  style: AppText.caption,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // 实时日志
+          _buildSectionCard(
+            title: '实时日志 (${_logs.length})',
+            icon: Icons.article_rounded,
+            action: TextButton(
+              onPressed: () {
+                // 复制日志到剪贴板
+                final logText = _logs
+                    .map((l) => '[${l.timeStr}] [${l.level}] ${l.message}')
+                    .join('\n');
+                Clipboard.setData(ClipboardData(text: logText));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('日志已复制到剪贴板'),
+                    backgroundColor: AppColors.accent,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppShapes.borderRadius,
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                '复制',
+                style: AppText.caption.copyWith(color: AppColors.accent),
+              ),
+            ),
+            child: Container(
+              height: 300,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: AppShapes.borderRadiusSm,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                itemCount: _logs.length,
+                itemBuilder: (context, index) {
+                  final log = _logs[index];
+                  return _buildLogItem(log);
+                },
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLogList() {
-    if (_logs.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+    Widget? action,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: const Color(0xFF16213E),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Text(
-                '📝 实时日志',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
+              Icon(icon, size: 16, color: AppColors.textMuted),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: AppText.label.copyWith(
+                  color: AppColors.textMuted,
+                  letterSpacing: 1.2,
                 ),
               ),
               const Spacer(),
-              Text(
-                '${_logs.length}条',
-                style: const TextStyle(color: Colors.white38, fontSize: 11),
-              ),
+              if (action != null) action,
             ],
           ),
-          const SizedBox(height: 8),
-          ...List.generate(
-            _logs.length > 100 ? 100 : _logs.length,
-            (i) {
-              final log = _logs[_logs.length - (_logs.length > 100 ? 100 : _logs.length) + i];
-              Color levelColor;
-              switch (log.level) {
-                case 'ERROR':
-                  levelColor = Colors.red[300]!;
-                  break;
-                case 'WARN':
-                  levelColor = Colors.orange[300]!;
-                  break;
-                case 'INFO':
-                  levelColor = Colors.cyan[300]!;
-                  break;
-                default:
-                  levelColor = Colors.grey[400]!;
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 1),
-                child: Text(
-                  '[${log.timeStr}] [${log.level}] ${log.message}',
-                  style: TextStyle(
-                    color: levelColor,
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    height: 1.4,
-                  ),
-                ),
-              );
-            },
-          ),
+          const SizedBox(height: AppSpacing.md),
+          child,
         ],
       ),
     );
   }
 
-  Widget _buildActions() {
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              await DebugHelper.clearLogs();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('日志已清空')),
-                );
-                _refresh();
-              }
-            },
-            icon: const Icon(Icons.delete_outline, size: 16),
-            label: const Text('清空日志'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red[300],
-              side: BorderSide(color: Colors.red[300]!),
+  Widget _buildLogItem(LogEntry log) {
+    Color levelColor;
+    switch (log.level) {
+      case 'ERROR':
+        levelColor = AppColors.negative;
+        break;
+      case 'WARN':
+        levelColor = Colors.orange;
+        break;
+      case 'INFO':
+        levelColor = AppColors.accent;
+        break;
+      default:
+        levelColor = AppColors.textMuted;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 时间戳
+          Text(
+            log.timeStr,
+            style: AppText.caption.copyWith(
+              fontFamily: 'monospace',
+              fontSize: 10,
+              color: AppColors.textMuted,
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              final text = await DebugHelper.getLogText();
-              if (text.isNotEmpty && mounted) {
-                await Clipboard.setData(ClipboardData(text: text));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已复制 ${text.length} 字符')),
-                );
-              } else if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('无日志可复制')),
-                );
-              }
-            },
-            icon: const Icon(Icons.copy, size: 16),
-            label: const Text('复制完整日志'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.cyan[300],
-              side: BorderSide(color: Colors.cyan[300]!),
+          const SizedBox(width: AppSpacing.sm),
+
+          // 级别标签
+          Container(
+            width: 36,
+            alignment: Alignment.centerRight,
+            child: Text(
+              log.level,
+              style: AppText.caption.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 10,
+                color: levelColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.sm),
+
+          // 消息内容
+          Expanded(
+            child: Text(
+              log.message,
+              style: AppText.caption.copyWith(
+                fontFamily: 'monospace',
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

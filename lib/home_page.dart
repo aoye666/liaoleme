@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'theme.dart';
 import 'database_helper.dart';
 import 'quote_section.dart';
 import 'spin_wheel.dart';
@@ -15,28 +16,57 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final DatabaseHelper _db = DatabaseHelper();
-  
+
   // 状态变量
   bool _isCheckedIn = false;
   String? _checkinResult;
   String? _checkinMethod;
   bool _isSpinning = false;
   int _todayCount = 0;
-  
+
   // 调试入口 — 标题连击计数
   int _titleTapCount = 0;
   DateTime? _lastTitleTap;
-  
+
   // 时间门控：晚8点后
   bool get _isAfter8PM => DateTime.now().hour >= 20;
+
+  // 动画控制器
+  late AnimationController _entryController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     DebugHelper.track('HomePage.initState');
-    _loadTodayStatus();
+
+    // 入场动画
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
+    );
+
+    _loadTodayStatus().then((_) {
+      _entryController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTodayStatus() async {
@@ -45,7 +75,7 @@ class _HomePageState extends State<HomePage> {
       final today = _formatDate(DateTime.now());
       DebugHelper.info('查询今日记录: date=$today');
       final record = await _db.getCheckinByDate(today);
-      
+
       if (record != null) {
         DebugHelper.info('今日已打卡: result=${record['result']}, method=${record['method']}, count=${record['count']}');
         setState(() {
@@ -61,7 +91,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       DebugHelper.error('加载今日状态失败: $e');
-      // 数据库异常降级：保持空状态，用户仍然可以正常打卡
     }
   }
 
@@ -72,21 +101,24 @@ class _HomePageState extends State<HomePage> {
       DebugHelper.track('打卡: 转盘，开始写入数据库');
       await _db.insertCheckin(date: today, method: 'spin', result: result);
       DebugHelper.track('打卡: 转盘，写入完成');
-      
+
       setState(() {
         _isSpinning = false;
         _isCheckedIn = true;
         _checkinResult = result;
         _checkinMethod = 'spin';
       });
-      
-      _showResultDialog(result);
+
+      _showResultSnackbar(result);
     } catch (e) {
       DebugHelper.error('转盘保存失败: $e');
       if (mounted) {
         setState(() => _isSpinning = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存失败，请重试')),
+          SnackBar(
+            content: const Text('保存失败，请重试'),
+            backgroundColor: AppColors.negative,
+          ),
         );
       }
     }
@@ -96,260 +128,402 @@ class _HomePageState extends State<HomePage> {
     DebugHelper.info('手动选择: $result');
     try {
       final today = _formatDate(DateTime.now());
-      DebugHelper.track('打卡: 手动按钮，开始写入数据库');
+      DebugHelper.track('打卡: 手动选择，开始写入数据库');
       await _db.insertCheckin(date: today, method: 'button', result: result);
-      DebugHelper.track('打卡: 手动按钮，写入完成');
-      
+      DebugHelper.track('打卡: 手动选择，写入完成');
+
       setState(() {
         _isCheckedIn = true;
         _checkinResult = result;
         _checkinMethod = 'button';
       });
-      
-      _showResultDialog(result);
+
+      _showResultSnackbar(result);
     } catch (e) {
-      DebugHelper.error('手动保存失败: $e');
+      DebugHelper.error('手动选择保存失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('保存失败，请重试')),
+          SnackBar(
+            content: const Text('保存失败，请重试'),
+            backgroundColor: AppColors.negative,
+          ),
         );
       }
     }
   }
 
-  void _showResultDialog(String result) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          result == '不撸' ? '🎉 太棒了！' : '💪 没关系',
-          style: const TextStyle(color: Colors.black87),
-        ),
-        content: Text(
-          result == '不撸' 
-              ? '恭喜你成功克制住了！\n今天的你又是强大的自己！' 
-              : '没关系，明天继续努力！\n重要的是不放弃！',
-          style: const TextStyle(color: Colors.black54),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text(
-              '确定',
-              style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+  void _showResultSnackbar(String result) {
+    final isSuccess = result == '不撸';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Text(
+              isSuccess ? '✓ ' : '✗ ',
+              style: TextStyle(
+                color: isSuccess ? AppColors.accent : AppColors.negative,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-        ],
+            Text(
+              isSuccess ? '克制成功，继续保持' : '记录已保存',
+              style: const TextStyle(color: AppColors.textPrimary),
+            ),
+          ],
+        ),
+        backgroundColor: AppColors.surfaceElevated,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: AppShapes.borderRadius),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  Future<void> _updateCount(int count) async {
-    DebugHelper.info('更新次数: $count');
+  void _onCountChanged(int newCount) async {
+    if (newCount < 0) return;
+    DebugHelper.info('更新次数: $newCount');
+    setState(() => _todayCount = newCount);
     try {
       final today = _formatDate(DateTime.now());
-      await _db.updateCount(today, count);
-      setState(() => _todayCount = count);
-      DebugHelper.track('次数更新成功: $count');
+      await _db.updateCount(today, newCount);
+      DebugHelper.track('次数更新完成');
     } catch (e) {
       DebugHelper.error('次数更新失败: $e');
     }
   }
 
+  // 标题连击 — 调试入口
+  void _onTitleTap() {
+    final now = DateTime.now();
+    if (_lastTitleTap == null ||
+        now.difference(_lastTitleTap!) > const Duration(milliseconds: 500)) {
+      _titleTapCount = 1;
+    } else {
+      _titleTapCount++;
+    }
+    _lastTitleTap = now;
+
+    if (_titleTapCount >= 5) {
+      _titleTapCount = 0;
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const DebugPage()),
+      );
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: GestureDetector(
-          onTap: () {
-            final now = DateTime.now();
-            // 1秒内连续点击才计数
-            if (_lastTitleTap != null &&
-                now.difference(_lastTitleTap!) < const Duration(seconds: 1)) {
-              _titleTapCount++;
-            } else {
-              _titleTapCount = 1;
-            }
-            _lastTitleTap = now;
+      backgroundColor: AppColors.background,
+      appBar: _buildAppBar(),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: AppSpacing.lg),
 
-            // 连击5次进入调试页
-            if (_titleTapCount >= 5) {
-              _titleTapCount = 0;
-              DebugHelper.info('🛠️ 调试入口触发');
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DebugPage()),
-              );
-            }
-          },
-          child: const Text(
-            '撸了么',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 2,
+                // 一言区域
+                const QuoteSection(),
+
+                const SizedBox(height: AppSpacing.xl),
+
+                // 打卡区域标题
+                _buildSectionHeader('今日打卡'),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // 转盘
+                _buildWheelCard(),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // 手动选择按钮
+                _buildManualButtons(),
+
+                const SizedBox(height: AppSpacing.xl),
+
+                // 次数输入
+                _buildSectionHeader('次数记录'),
+                const SizedBox(height: AppSpacing.md),
+                TimeGatedInput(
+                  isCheckedIn: _isCheckedIn,
+                  isAfter8PM: _isAfter8PM,
+                  currentCount: _todayCount,
+                  onCountChanged: _onCountChanged,
+                ),
+
+                const SizedBox(height: AppSpacing.xxl),
+              ],
             ),
           ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report, color: Colors.white54, size: 20),
-            tooltip: '调试日志',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const DebugPage()),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.bar_chart, color: Colors.white),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const StatsPage()),
-            ),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const QuoteSection(),
-            _buildCheckinSection(),
-            TimeGatedInput(
-              isCheckedIn: _isCheckedIn,
-              isAfter8PM: _isAfter8PM,
-              currentCount: _todayCount,
-              onCountChanged: _updateCount,
-            ),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildCheckinSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+  // AppBar — 左对齐标题 + 右侧操作
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: AppColors.background,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      title: GestureDetector(
+        onTap: _onTitleTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Logo 图标
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.accent,
+                borderRadius: AppShapes.borderRadiusSm,
+              ),
+              child: const Center(
+                child: Text(
+                  'L',
+                  style: TextStyle(
+                    color: AppColors.background,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            const Text(
+              '撸了么',
+              style: AppText.title,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        // 统计按钮
+        _buildAppBarAction(
+          icon: Icons.bar_chart_rounded,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StatsPage()),
+            );
+          },
+        ),
+        // 调试按钮
+        _buildAppBarAction(
+          icon: Icons.bug_report_rounded,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DebugPage()),
+            );
+          },
+        ),
+        const SizedBox(width: AppSpacing.sm),
+      ],
+    );
+  }
+
+  Widget _buildAppBarAction({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: AppShapes.borderRadiusSm,
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            color: AppColors.textSecondary,
+            size: 22,
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  // 区域标题 — 左对齐，带微妙分割线
+  Widget _buildSectionHeader(String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title.toUpperCase(),
+          style: AppText.label.copyWith(
+            letterSpacing: 1.5,
+            color: AppColors.textMuted,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          width: 24,
+          height: 2,
+          decoration: BoxDecoration(
+            color: AppColors.accent,
+            borderRadius: BorderRadius.circular(1),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 转盘卡片
+  Widget _buildWheelCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.card,
       ),
       child: Column(
         children: [
-          const Text(
-            '今日打卡',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          const SizedBox(height: 20),
-          
+          // 转盘组件
           SpinWheel(
             isDisabled: _isCheckedIn || _isSpinning,
             onSpinComplete: _onSpinComplete,
             onSpinStart: () => setState(() => _isSpinning = true),
           ),
-          
-          const SizedBox(height: 24),
-          
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.grey[300])),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('或者', style: TextStyle(color: Colors.grey[500])),
-              ),
-              Expanded(child: Divider(color: Colors.grey[300])),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          Row(
-            children: [
-              Expanded(
-                child: _buildCheckinButton(
-                  label: '不撸',
-                  color: Colors.black,
-                  isDisabled: _isCheckedIn || _isSpinning,
-                  onPressed: () => _onButtonSelect('不撸'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildCheckinButton(
-                  label: '撸了',
-                  color: Colors.grey[700]!,
-                  isDisabled: _isCheckedIn || _isSpinning,
-                  onPressed: () => _onButtonSelect('撸'),
-                ),
-              ),
-            ],
-          ),
-          
-          if (_isCheckedIn) ...[
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _checkinResult == '不撸' ? Icons.check_circle : Icons.info,
-                    color: _checkinResult == '不撸' ? Colors.green : Colors.orange,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '今日已打卡：$_checkinResult',
-                    style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            ),
+
+          // 已打卡状态
+          if (_isCheckedIn && _checkinMethod == 'spin') ...[
+            const SizedBox(height: AppSpacing.lg),
+            _buildCheckedInBadge(),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildCheckinButton({
-    required String label,
-    required Color color,
-    required bool isDisabled,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton(
-      onPressed: isDisabled ? null : onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: Colors.grey[300],
-        disabledForegroundColor: Colors.grey[500],
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: isDisabled ? 0 : 2,
-      ),
-      child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+  // 手动选择按钮
+  Widget _buildManualButtons() {
+    return Row(
+      children: [
+        // 不撸按钮
+        Expanded(
+          child: _buildSelectButton(
+            label: '不撸',
+            isSelected: _isCheckedIn && _checkinResult == '不撸',
+            isSuccess: true,
+            onPressed: _isCheckedIn ? null : () => _onButtonSelect('不撸'),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        // 撸按钮
+        Expanded(
+          child: _buildSelectButton(
+            label: '撸',
+            isSelected: _isCheckedIn && _checkinResult == '撸',
+            isSuccess: false,
+            onPressed: _isCheckedIn ? null : () => _onButtonSelect('撸'),
+          ),
+        ),
+      ],
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  Widget _buildSelectButton({
+    required String label,
+    required bool isSelected,
+    required bool isSuccess,
+    required VoidCallback? onPressed,
+  }) {
+    final Color activeColor = isSuccess ? AppColors.accent : AppColors.negative;
+    final Color activeBg = isSuccess
+        ? AppColors.accentSubtle
+        : AppColors.negativeSubtle;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: Material(
+        color: isSelected ? activeBg : AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: AppShapes.borderRadius,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+            decoration: BoxDecoration(
+              borderRadius: AppShapes.borderRadius,
+              border: Border.all(
+                color: isSelected
+                    ? activeColor
+                    : AppColors.border,
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: AppText.cardTitle.copyWith(
+                  color: isSelected
+                      ? activeColor
+                      : (onPressed == null
+                          ? AppColors.textMuted
+                          : AppColors.textPrimary),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 已打卡标记
+  Widget _buildCheckedInBadge() {
+    final isSuccess = _checkinResult == '不撸';
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: isSuccess
+            ? AppColors.accentSubtle
+            : AppColors.negativeSubtle,
+        borderRadius: AppShapes.borderRadiusSm,
+        border: Border.all(
+          color: isSuccess ? AppColors.accent : AppColors.negative,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle : Icons.info,
+            size: 16,
+            color: isSuccess ? AppColors.accent : AppColors.negative,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            '已记录: $_checkinResult',
+            style: AppText.caption.copyWith(
+              color: isSuccess ? AppColors.accent : AppColors.negative,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

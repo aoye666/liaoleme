@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'theme.dart';
 import 'quote_service.dart';
 
-// 随机一言组件
+// 随机一言组件 - taste-skill 设计重构
+// 更克制的卡片设计，左对齐排版
 class QuoteSection extends StatefulWidget {
   const QuoteSection({super.key});
 
@@ -10,15 +12,33 @@ class QuoteSection extends StatefulWidget {
   State<QuoteSection> createState() => _QuoteSectionState();
 }
 
-class _QuoteSectionState extends State<QuoteSection> {
-  String _quote = '加载中...';
+class _QuoteSectionState extends State<QuoteSection>
+    with SingleTickerProviderStateMixin {
+  String _quote = '';
   String _from = '';
+  bool _isLoading = true;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+
   final QuoteService _quoteService = QuoteService();
 
   @override
   void initState() {
     super.initState();
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
     _loadQuote();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadQuote() async {
@@ -33,7 +53,9 @@ class _QuoteSectionState extends State<QuoteSection> {
       setState(() {
         _quote = savedQuote;
         _from = savedFrom ?? '';
+        _isLoading = false;
       });
+      _animController.forward();
     } else {
       // 新的一天，获取新的一言
       final result = await _quoteService.fetchQuote();
@@ -43,7 +65,9 @@ class _QuoteSectionState extends State<QuoteSection> {
       setState(() {
         _quote = result['text']!;
         _from = result['from']!;
+        _isLoading = false;
       });
+      _animController.forward();
     }
   }
 
@@ -53,45 +77,145 @@ class _QuoteSectionState extends State<QuoteSection> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return _buildSkeleton();
+    }
+
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: AppShapes.borderRadius,
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 图标 + 标签行
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentSubtle,
+                    borderRadius: AppShapes.borderRadiusSm,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '✦',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '每日一言',
+                  style: AppText.label.copyWith(
+                    color: AppColors.accent,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            // 引用文本
+            Text(
+              _quote,
+              style: AppText.body.copyWith(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                height: 1.7,
+                letterSpacing: 0.2,
+              ),
+            ),
+
+            if (_from.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.sm),
+              // 来源
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 1,
+                    color: AppColors.border,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    _from,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textMuted,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 骨架屏
+  Widget _buildSkeleton() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '📜',
-            style: TextStyle(fontSize: 32),
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: AppShapes.borderRadiusSm,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Container(
+                width: 60,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceElevated,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            _quote,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-              letterSpacing: 1.2,
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            width: double.infinity,
+            height: 16,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(2),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            _from.isNotEmpty ? '— $_from' : '— 每日一话',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[500],
+          const SizedBox(height: AppSpacing.xs),
+          Container(
+            width: 200,
+            height: 16,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
         ],

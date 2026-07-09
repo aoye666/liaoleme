@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
+import 'theme.dart';
 import 'home_page.dart';
 import 'debug_helper.dart';
 
@@ -11,15 +13,24 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 设置状态栏为透明，内容延伸到状态栏
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.background,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+
   // ===== 调试系统初始化（最先启动，记录全局流程） =====
   await DebugHelper.enable();
   DebugHelper.track('调试系统启动');
-  DebugHelper.info('撸了么 v2026.07.08.2333 启动');
+  DebugHelper.info('撸了么 v2026.07.09 taste-skill 重构版启动');
   DebugHelper.info('平台: ${Platform.isAndroid ? "Android" : "其他"}');
 
   // ---- 通知初始化 ----
   DebugHelper.track('开始初始化通知');
-  DebugHelper.info('通知版本: flutter_local_notifications');
   try {
     await _initNotifications();
     DebugHelper.track('通知初始化完成');
@@ -92,31 +103,49 @@ Future<void> _initNotifications() async {
 }
 
 // 调度每日打卡通知（20:00）
-// 注意：periodicallyShow 在部分设备上会触发 Java 泛型序列化日志错误
 Future<void> scheduleDailyNotification() async {
   const AndroidNotificationDetails androidDetails =
       AndroidNotificationDetails(
     'liaoleme_daily',
     '每日打卡提醒',
-    channelDescription: '每天20:00提醒你打卡',
+    channelDescription: '每天定时提醒你打卡',
     importance: Importance.high,
     priority: Priority.high,
+    showWhen: true,
   );
 
-  const NotificationDetails notificationDetails = NotificationDetails(
+  const NotificationDetails details = NotificationDetails(
     android: androidDetails,
   );
 
-  await flutterLocalNotificationsPlugin.periodicallyShow(
-    1,
-    '撸了么提醒',
-    '该打卡啦！来看看今天的自己吧',
-    RepeatInterval.daily,
-    notificationDetails,
-    androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-  );
+  try {
+    await flutterLocalNotificationsPlugin.periodicallyShow(
+      0,
+      '撸了么',
+      '今天的结果是什么？来打个卡吧',
+      RepeatInterval.daily,
+      details,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  } catch (e) {
+    DebugHelper.warn('periodicallyShow 失败: $e');
+    // 降级：尝试 showDailyAtTime（v18 可能不存在）
+    try {
+      await flutterLocalNotificationsPlugin.showDailyAtTime(
+        0,
+        '撸了么',
+        '今天的结果是什么？来打个卡吧',
+        const Time(20, 0, 0),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } catch (e2) {
+      DebugHelper.error('showDailyAtTime 也失败: $e2');
+    }
+  }
 }
 
+// 应用根组件
 class LiaoLeMeApp extends StatelessWidget {
   const LiaoLeMeApp({super.key});
 
@@ -125,87 +154,8 @@ class LiaoLeMeApp extends StatelessWidget {
     return MaterialApp(
       title: '撸了么',
       debugShowCheckedModeBanner: false,
-      theme: _buildBlackWhiteTheme(),
+      theme: buildAppTheme(),
       home: const HomePage(),
-    );
-  }
-
-  // 黑白配色主题
-  ThemeData _buildBlackWhiteTheme() {
-    return ThemeData(
-      brightness: Brightness.light,
-      primarySwatch: Colors.grey,
-      scaffoldBackgroundColor: Colors.grey[100],
-
-      colorScheme: ColorScheme.light(
-        primary: Colors.black,
-        secondary: Colors.grey[700]!,
-        surface: Colors.white,
-        error: Colors.grey[600]!,
-      ),
-
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 2,
-        ),
-      ),
-
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-        ),
-      ),
-
-      cardTheme: CardTheme(
-        color: Colors.white,
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black26),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.black, width: 2),
-        ),
-      ),
-
-      dividerTheme: DividerThemeData(
-        color: Colors.grey[300],
-        thickness: 1,
-      ),
-
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-      ),
-
-      textTheme: const TextTheme(
-        bodyLarge: TextStyle(color: Colors.black87),
-        bodyMedium: TextStyle(color: Colors.black87),
-        titleLarge: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-      ),
-
-      iconTheme: const IconThemeData(
-        color: Colors.black54,
-      ),
     );
   }
 }

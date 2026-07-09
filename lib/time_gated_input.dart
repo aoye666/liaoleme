@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'theme.dart';
 
-// 时间门控次数输入组件
+// 时间门控次数输入组件 - taste-skill 设计重构
 class TimeGatedInput extends StatelessWidget {
   final bool isCheckedIn;
   final bool isAfter8PM;
@@ -20,31 +22,47 @@ class TimeGatedInput extends StatelessWidget {
     final bool canInput = isCheckedIn && isAfter8PM;
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '今日次数',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+          // 标题行
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '今日次数',
+                style: AppText.cardTitle,
+              ),
+              if (canInput)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentSubtle,
+                    borderRadius: AppShapes.borderRadiusSm,
+                  ),
+                  child: Text(
+                    '可编辑',
+                    style: AppText.caption.copyWith(
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: AppSpacing.lg),
+
           if (canInput)
             _buildInputArea()
           else
@@ -59,96 +77,125 @@ class TimeGatedInput extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // 减少按钮
         _buildCountButton(
           icon: Icons.remove,
           onPressed: currentCount > 0
-              ? () => onCountChanged(currentCount - 1)
+              ? () {
+                  HapticFeedback.lightImpact();
+                  onCountChanged(currentCount - 1);
+                }
               : null,
         ),
+
+        // 数字显示
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.black26),
-            borderRadius: BorderRadius.circular(8),
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.md,
           ),
-          child: Text(
-            '$currentCount',
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceElevated,
+            borderRadius: AppShapes.borderRadiusSm,
+            border: Border.all(color: AppColors.border),
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) {
+              return ScaleTransition(scale: animation, child: child);
+            },
+            child: Text(
+              '$currentCount',
+              key: ValueKey(currentCount),
+              style: AppText.number,
             ),
           ),
         ),
+
+        // 增加按钮
         _buildCountButton(
           icon: Icons.add,
-          onPressed: () => onCountChanged(currentCount + 1),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            onCountChanged(currentCount + 1);
+          },
         ),
       ],
+    );
+  }
+
+  Widget _buildCountButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Material(
+      color: onPressed != null
+          ? AppColors.accent
+          : AppColors.surfaceElevated,
+      borderRadius: AppShapes.borderRadiusSm,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: AppShapes.borderRadiusSm,
+        child: Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          child: Icon(
+            icon,
+            size: 20,
+            color: onPressed != null
+                ? AppColors.background
+                : AppColors.textMuted,
+          ),
+        ),
+      ),
     );
   }
 
   // 锁定区域
   Widget _buildLockedArea() {
     String lockText;
+    String lockSubtext;
+    IconData lockIcon;
+
     if (!isCheckedIn) {
       lockText = '请先完成打卡';
+      lockSubtext = '打卡后即可记录次数';
+      lockIcon = Icons.lock_outline_rounded;
     } else {
-      lockText = '晚8点后开放输入';
+      lockText = '晚8点后开放';
+      lockSubtext = '当前时间未到 20:00';
+      lockIcon = Icons.schedule_rounded;
     }
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        color: AppColors.surfaceElevated.withOpacity(0.5),
+        borderRadius: AppShapes.borderRadiusSm,
+        border: Border.all(color: AppColors.borderSubtle),
       ),
       child: Column(
         children: [
           Icon(
-            Icons.lock_outline,
-            size: 40,
-            color: Colors.grey[400],
+            lockIcon,
+            size: 28,
+            color: AppColors.textMuted,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             lockText,
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14,
+            style: AppText.bodyStrong.copyWith(
+              color: AppColors.textMuted,
             ),
           ),
-          if (isCheckedIn) ...[
-            const SizedBox(height: 4),
-            Text(
-              '当前次数：$currentCount',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          const SizedBox(height: 2),
+          Text(
+            lockSubtext,
+            style: AppText.caption,
+          ),
         ],
-      ),
-    );
-  }
-
-  // 次数加减按钮
-  Widget _buildCountButton({
-    required IconData icon,
-    VoidCallback? onPressed,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: onPressed != null ? Colors.black : Colors.grey[300],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white),
-        onPressed: onPressed,
       ),
     );
   }

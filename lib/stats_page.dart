@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'theme.dart';
 import 'database_helper.dart';
 
 class StatsPage extends StatefulWidget {
@@ -35,7 +36,10 @@ class _StatsPageState extends State<StatsPage> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('加载失败，请稍后重试')),
+          SnackBar(
+            content: const Text('加载失败，请稍后重试'),
+            backgroundColor: AppColors.negative,
+          ),
         );
       }
     }
@@ -44,34 +48,43 @@ class _StatsPageState extends State<StatsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          '数据统计',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: const Text('数据统计', style: AppText.title),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          color: AppColors.textSecondary,
+          onPressed: () => Navigator.pop(context),
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.accent,
+                strokeWidth: 2,
+              ),
+            )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildSummaryCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   _buildHeatmapCard(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   _buildLineChartCard(),
+                  const SizedBox(height: AppSpacing.xxl),
                 ],
+              ),
             ),
-          ),
     );
-    }
+  }
 
-  // 统计卡片
+  // 统计总览卡片
   Widget _buildSummaryCard() {
     final totalDays = _records.length;
     final noCount = _records.where((r) => r['result'] == '不撸').length;
@@ -80,47 +93,62 @@ class _StatsPageState extends State<StatsPage> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.card,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             '近90天总览',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+            style: AppText.label.copyWith(
+              color: AppColors.textMuted,
+              letterSpacing: 1.5,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 四个指标横排
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildStatItem('天数', '$totalDays'),
-              _buildStatItem('不撸', '$noCount'),
-              _buildStatItem('撸', '$yesCount'),
-              _buildStatItem('总次数', '$totalTimes'),
+              _buildStatItem('打卡', '$totalDays', '天'),
+              _buildStatDivider(),
+              _buildStatItem('不撸', '$noCount', '天'),
+              _buildStatDivider(),
+              _buildStatItem('撸', '$yesCount', '天'),
+              _buildStatDivider(),
+              _buildStatItem('次数', '$totalTimes', '次'),
             ],
           ),
+
+          // 成功率条
           if (totalDays > 0) ...[
-            const SizedBox(height: 16),
-            Text(
-              '克制率: ${(noCount / totalDays * 100).toStringAsFixed(1)}%',
-              style: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 14,
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevated,
+                borderRadius: BorderRadius.circular(2),
               ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: noCount / totalDays,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              '成功率 ${(noCount * 100 / totalDays).toStringAsFixed(1)}%',
+              style: AppText.caption.copyWith(color: AppColors.accent),
             ),
           ],
         ],
@@ -128,23 +156,29 @@ class _StatsPageState extends State<StatsPage> {
     );
   }
 
-  Widget _buildStatItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+  Widget _buildStatItem(String label, String value, String unit) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: AppText.numberSmall.copyWith(fontSize: 24),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(color: Colors.grey[400], fontSize: 12),
-        ),
-      ],
+          const SizedBox(height: 2),
+          Text(
+            '$label($unit)',
+            style: AppText.caption,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      width: 1,
+      height: 32,
+      color: AppColors.border,
     );
   }
 
@@ -152,276 +186,288 @@ class _StatsPageState extends State<StatsPage> {
   Widget _buildHeatmapCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'GitHub 风格热力图',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+          Text(
+            '打卡热力图',
+            style: AppText.label.copyWith(
+              color: AppColors.textMuted,
+              letterSpacing: 1.5,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '近90天打卡记录  ·  颜色深浅表示次数',
-            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 热力图网格
           _buildHeatmapGrid(),
-          const SizedBox(height: 12),
-          _buildHeatmapLegend(),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // 图例
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _buildLegendItem('无记录', AppColors.surfaceElevated),
+              const SizedBox(width: AppSpacing.sm),
+              _buildLegendItem('不撸', AppColors.accent),
+              const SizedBox(width: AppSpacing.sm),
+              _buildLegendItem('撸', AppColors.border),
+            ],
+          ),
         ],
       ),
     );
   }
 
   Widget _buildHeatmapGrid() {
-    final DateTime now = DateTime.now();
+    // 过去 12 周 = 84 天
+    final daysToShow = 84;
+    final now = DateTime.now();
+    final startDate = now.subtract(Duration(days: daysToShow - 1));
 
-    // 日期 → 记录映射
-    final Map<String, Map<String, dynamic>> recordMap = {
-      for (var r in _records) r['date'] as String: r
-    };
-
-    // 生成近90天的格子（周一至周日排列）
-    final List<Widget> cells = [];
-    final DateTime startDate = now.subtract(const Duration(days: 89));
-
-    // 补前列空白（对齐到周一）
-    final int startWeekday = startDate.weekday;
-    for (int i = 1; i < startWeekday; i++) {
-      cells.add(const SizedBox(width: 18, height: 18));
+    // 构建日期->记录的映射
+    final recordMap = <String, Map<String, dynamic>>{};
+    for (final r in _records) {
+      recordMap[r['date'] as String] = r;
     }
 
-    // 补实际日期格子
-    for (int i = 0; i < 90; i++) {
-      final DateTime date = startDate.add(Duration(days: i));
-      final String dateStr = _formatDate(date);
-      final record = recordMap[dateStr];
+    // 计算起始星期偏移（让第一行从周一开始）
+    final startWeekday = startDate.weekday % 7; // 0=Sun
 
-      Color cellColor;
-      bool isToday = dateStr == _formatDate(now);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cellSize = (constraints.maxWidth - 7 * 2) / 8; // 8 columns with gap
+        final rows = <Widget>[];
 
-      if (record != null) {
-        final count = (record['count'] as int?) ?? 0;
-        final result = record['result'] as String;
-        if (result == '不撸') {
-          cellColor = count == 0 ? Colors.grey[300]! : Colors.green[300]!;
-        } else {
-          cellColor = count == 0 ? Colors.grey[400]! : Colors.red[200]!;
-        }
-      } else if (date.isAfter(now)) {
-        cellColor = Colors.transparent;
-      } else {
-        cellColor = Colors.grey[200]!;
-      }
-
-      cells.add(
-        Tooltip(
-          message: record != null
-              ? '$dateStr | ${record['result']} | 次数:${(record['count'] as int?) ?? 0}'
-              : dateStr,
-          child: Container(
-            width: 18,
-            height: 18,
-            margin: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: cellColor,
-              borderRadius: BorderRadius.circular(4),
-              border: isToday
-                  ? Border.all(color: Colors.black, width: 2)
-                  : Border.all(color: Colors.black.withOpacity(0.08)),
-            ),
+        // 星期标签行
+        final weekdayLabels = ['一', '二', '三', '四', '五', '六', '日'];
+        rows.add(
+          Row(
+            children: [
+              SizedBox(width: cellSize + 2), // 左侧空白
+              ...weekdayLabels.map((d) => SizedBox(
+                    width: cellSize + 2,
+                    child: Center(
+                      child: Text(d, style: AppText.caption),
+                    ),
+                  )),
+            ],
           ),
-        ),
-      );
-    }
+        );
 
-    return Wrap(
-      children: cells.map((w) => SizedBox(width: 22, height: 22, child: w)).toList(),
+        // 日期网格
+        final totalCells = startWeekday + daysToShow;
+        final rowCount = (totalCells / 7).ceil();
+
+        for (int row = 0; row < rowCount; row++) {
+          final cells = <Widget>[];
+
+          for (int col = 0; col < 7; col++) {
+            final index = row * 7 + col - startWeekday;
+
+            if (index < 0 || index >= daysToShow) {
+              cells.add(SizedBox(width: cellSize, height: cellSize));
+            } else {
+              final date = startDate.add(Duration(days: index));
+              final dateStr =
+                  '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+              final record = recordMap[dateStr];
+
+              cells.add(
+                Container(
+                  width: cellSize,
+                  height: cellSize,
+                  margin: const EdgeInsets.all(1),
+                  decoration: BoxDecoration(
+                    color: _getHeatmapColor(record),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              );
+            }
+          }
+
+          rows.add(
+            Row(
+              children: [
+                SizedBox(width: cellSize + 2), // 左侧空白
+                ...cells,
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: rows,
+        );
+      },
     );
   }
 
-  Widget _buildHeatmapLegend() {
+  Color _getHeatmapColor(Map<String, dynamic>? record) {
+    if (record == null) return AppColors.surfaceElevated;
+    final result = record['result'] as String;
+    if (result == '不撸') return AppColors.accent;
+    return AppColors.border; // 撸 = 微妙灰色
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('少 ', style: TextStyle(fontSize: 10, color: Colors.grey)),
-        ..._buildLegendCell(Colors.grey[200]!),
-        ..._buildLegendCell(Colors.grey[300]!),
-        ..._buildLegendCell(Colors.green[300]!),
-        ..._buildLegendCell(Colors.red[200]!),
-        const Text(' 多', style: TextStyle(fontSize: 10, color: Colors.grey)),
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(label, style: AppText.caption),
       ],
     );
   }
 
-  List<Widget> _buildLegendCell(Color color) {
-    return [
-      Container(
-        width: 14,
-        height: 14,
-        margin: const EdgeInsets.symmetric(horizontal: 1),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(3),
-        ),
-      ),
-    ];
-  }
-
   // 折线图卡片
   Widget _buildLineChartCard() {
-    final spots = _buildLineChartSpots();
+    // 按日期聚合次数
+    final Map<String, int> dateCountMap = {};
+    for (final r in _records) {
+      final date = r['date'] as String;
+      dateCountMap[date] = (dateCountMap[date] ?? 0) + (r['count'] as int? ?? 0);
+    }
+
+    // 取最近 30 天
+    final now = DateTime.now();
+    final spots = <FlSpot>[];
+    for (int i = 29; i >= 0; i--) {
+      final date = now.subtract(Duration(days: i));
+      final dateStr =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final count = dateCountMap[dateStr] ?? 0;
+      spots.add(FlSpot((29 - i).toDouble(), count.toDouble()));
+    }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.black12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: AppShapes.borderRadius,
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '近30天趋势',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
           Text(
-            '每日次数变化',
-            style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+            '近30天次数趋势',
+            style: AppText.label.copyWith(
+              color: AppColors.textMuted,
+              letterSpacing: 1.5,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.lg),
+
           SizedBox(
-            height: 200,
-            child: spots.isEmpty
-                ? Center(child: Text('暂无数据', style: TextStyle(color: Colors.grey)))
-                : _buildLineChart(spots),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<FlSpot> _buildLineChartSpots() {
-    if (_records.isEmpty) return [];
-
-    final spots = <FlSpot>[];
-    final now = DateTime.now();
-    final Map<String, Map<String, dynamic>> recordMap = {
-      for (var r in _records) r['date'] as String: r
-    };
-
-    for (int i = 29; i >= 0; i--) {
-      final date = now.subtract(Duration(days: i));
-      final dateStr = _formatDate(date);
-      final record = recordMap[dateStr];
-      final count = (record?['count'] as int?) ?? 0;
-      spots.add(FlSpot((29 - i).toDouble(), count.toDouble()));
-    }
-
-    return spots;
-  }
-
-  Widget _buildLineChart(List<FlSpot> spots) {
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: 1,
-          getDrawingHorizontalLine: (value) => FlLine(
-            color: Colors.grey[200]!,
-            strokeWidth: 1,
-          ),
-        ),
-        titlesData: FlTitlesData(
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 1,
-              reservedSize: 30,
-              getTitlesWidget: (value, meta) => Text(
-                value.toInt().toString(),
-                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            height: 160,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 1,
+                  getDrawingHorizontalLine: (value) => FlLine(
+                    color: AppColors.borderSubtle,
+                    strokeWidth: 1,
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 24,
+                      interval: 7,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx >= 0 && idx < spots.length) {
+                          final date = now.subtract(Duration(days: 29 - idx));
+                          return Text(
+                            '${date.month}/${date.day}',
+                            style: AppText.caption.copyWith(fontSize: 10),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: AppText.caption.copyWith(fontSize: 10),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    color: AppColors.accent,
+                    barWidth: 2,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(
+                      show: true,
+                      getDotPainter: (spot, percent, barData, index) {
+                        return FlDotCirclePainter(
+                          radius: 3,
+                          color: AppColors.accent,
+                          strokeWidth: 0,
+                        );
+                      },
+                    ),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: AppColors.accent.withOpacity(0.1),
+                    ),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    getTooltipColor: (_) => AppColors.surfaceElevated,
+                    getTooltipItems: (spots) => spots.map((spot) {
+                      return LineTooltipItem(
+                        '${spot.y.toInt()} 次',
+                        AppText.caption.copyWith(color: AppColors.textPrimary),
+                      );
+                    }).toList(),
+                  ),
+                ),
               ),
-            ),
-          ),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: 5,
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() % 5 == 0 && value.toInt() < 30) {
-                  final date = DateTime.now().subtract(Duration(days: 29 - value.toInt()));
-                  return Text(
-                    DateFormat('M/d').format(date),
-                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            color: Colors.black,
-            barWidth: 2,
-            dotData: FlDotData(
-              show: true,
-              getDotPainter: (spot, percent, barData, index) =>
-                  FlDotCirclePainter(
-                radius: 3,
-                color: Colors.black,
-                strokeWidth: 0,
-              ),
-            ),
-            belowBarData: BarAreaData(
-              show: true,
-              color: Colors.black.withOpacity(0.05),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
 }

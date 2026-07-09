@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'theme.dart';
 
-// 转盘组件
+// 转盘组件 - taste-skill 设计重构
+// 黑白配色保留，但使用 zinc 调色板，更柔和
 class SpinWheel extends StatefulWidget {
   final bool isDisabled;
   final Function(String) onSpinComplete;
@@ -29,7 +31,7 @@ class _SpinWheelState extends State<SpinWheel>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: const Duration(milliseconds: 2800),
       vsync: this,
     );
     _animation = Tween<double>(begin: 0, end: 1).animate(
@@ -46,7 +48,6 @@ class _SpinWheelState extends State<SpinWheel>
   void _spin() {
     if (widget.isDisabled || _isSpinning) return;
 
-    // 锁定全局状态
     widget.onSpinStart();
     setState(() => _isSpinning = true);
 
@@ -60,8 +61,6 @@ class _SpinWheelState extends State<SpinWheel>
     _controller.reset();
     _controller.forward().then((_) {
       // 根据最终停止位置判定结果
-      // 初始状态：上半部分=不撸(黑)，下半部分=撸(白)
-      // 顺时针旋转后，顶部指针指向的扇形判定结果
       final double normalizedRotation = finalRotation % 1.0;
       final String result = normalizedRotation < 0.5 ? '不撸' : '撸';
 
@@ -76,9 +75,7 @@ class _SpinWheelState extends State<SpinWheel>
       mainAxisSize: MainAxisSize.min,
       children: [
         // 顶部指针（指向转盘）
-        TrianglePointer(
-          isDisabled: widget.isDisabled,
-        ),
+        TrianglePointer(isDisabled: widget.isDisabled),
 
         const SizedBox(height: 4),
 
@@ -96,23 +93,23 @@ class _SpinWheelState extends State<SpinWheel>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: widget.isDisabled ? Colors.grey[300]! : Colors.black,
-                      width: 3,
+                      color: widget.isDisabled
+                          ? AppColors.border
+                          : AppColors.textPrimary,
+                      width: 2,
                     ),
                     boxShadow: widget.isDisabled
                         ? []
                         : [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
+                              color: AppColors.textPrimary.withOpacity(0.1),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
                           ],
                   ),
-                  child: ClipOval(
-                    child: CustomPaint(
-                      painter: _WheelPainter(isDisabled: widget.isDisabled),
-                    ),
+                  child: CustomPaint(
+                    painter: _WheelPainter(isDisabled: widget.isDisabled),
                   ),
                 ),
               );
@@ -120,35 +117,84 @@ class _SpinWheelState extends State<SpinWheel>
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
 
         // 提示文字
-        _buildHintText(),
+        Text(
+          widget.isDisabled ? '今日已打卡' : '点击转盘开始',
+          style: AppText.caption.copyWith(
+            color: widget.isDisabled
+                ? AppColors.textMuted
+                : AppColors.textSecondary,
+          ),
+        ),
       ],
-    );
-  }
-
-  Widget _buildHintText() {
-    String text;
-    Color color;
-    if (widget.isDisabled) {
-      text = '今日已打卡';
-      color = Colors.grey[400]!;
-    } else if (_isSpinning) {
-      text = '转盘旋转中...';
-      color = Colors.grey[600]!;
-    } else {
-      text = '点击开始';
-      color = Colors.grey[600]!;
-    }
-    return Text(
-      text,
-      style: TextStyle(color: color, fontSize: 14),
     );
   }
 }
 
-// 顶部三角形指针
+// 转盘绘制器
+class _WheelPainter extends CustomPainter {
+  final bool isDisabled;
+
+  _WheelPainter({required this.isDisabled});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    // 上半部分 = 不撸 (zinc-900 深)
+    final paintTop = Paint()
+      ..color = isDisabled ? AppColors.surfaceElevated : AppColors.wheelNo
+      ..style = PaintingStyle.fill;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      pi,
+      true,
+      paintTop,
+    );
+
+    // 下半部分 = 撸 (zinc-50 浅)
+    final paintBottom = Paint()
+      ..color = isDisabled ? AppColors.border : AppColors.wheelYes
+      ..style = PaintingStyle.fill;
+
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      pi / 2,
+      pi,
+      true,
+      paintBottom,
+    );
+
+    // 中心圆点
+    final centerDot = Paint()
+      ..color = AppColors.accent
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(center, 6, centerDot);
+
+    // 分隔线
+    final linePaint = Paint()
+      ..color = AppColors.accent.withOpacity(0.5)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    canvas.drawLine(
+      Offset(center.dx, center.dy - radius + 4),
+      Offset(center.dx, center.dy + radius - 4),
+      linePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// 三角形指针
 class TrianglePointer extends StatelessWidget {
   final bool isDisabled;
 
@@ -156,12 +202,9 @@ class TrianglePointer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 24,
-      height: 12,
-      child: CustomPaint(
-        painter: _TrianglePainter(isDisabled: isDisabled),
-      ),
+    return CustomPaint(
+      size: const Size(20, 12),
+      painter: _TrianglePainter(isDisabled: isDisabled),
     );
   }
 }
@@ -174,7 +217,7 @@ class _TrianglePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = isDisabled ? Colors.grey[400]! : Colors.black
+      ..color = isDisabled ? AppColors.border : AppColors.accent
       ..style = PaintingStyle.fill;
 
     final path = Path()
@@ -184,99 +227,6 @@ class _TrianglePainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-// 转盘绘制
-class _WheelPainter extends CustomPainter {
-  final bool isDisabled;
-
-  _WheelPainter({required this.isDisabled});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    // 绘制两半扇形
-    final paintBlack = Paint()
-      ..color = isDisabled ? Colors.grey[300]! : Colors.black
-      ..style = PaintingStyle.fill;
-
-    final paintWhite = Paint()
-      ..color = isDisabled ? Colors.grey[50]! : Colors.white
-      ..style = PaintingStyle.fill;
-
-    // 上半 - 黑（不撸）
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2,
-      pi,
-      true,
-      paintBlack,
-    );
-
-    // 下半 - 白（撸）
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      pi / 2,
-      pi,
-      true,
-      paintWhite,
-    );
-
-    // 中间分割线
-    final linePaint = Paint()
-      ..color = isDisabled ? Colors.grey[200]! : Colors.black26
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(
-      Offset(center.dx - radius, center.dy),
-      Offset(center.dx + radius, center.dy),
-      linePaint,
-    );
-
-    // 绘制文字
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    // "不撸" (黑区白字)
-    textPainter.text = TextSpan(
-      text: '不撸',
-      style: TextStyle(
-        color: isDisabled ? Colors.grey[500]! : Colors.white,
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        center.dx - textPainter.width / 2,
-        center.dy - radius / 3 - textPainter.height / 2,
-      ),
-    );
-
-    // "撸"（白区黑字）
-    textPainter.text = TextSpan(
-      text: '撸',
-      style: TextStyle(
-        color: isDisabled ? Colors.grey[500]! : Colors.black,
-        fontSize: 22,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        center.dx - textPainter.width / 2,
-        center.dy + radius / 4 - textPainter.height / 2,
-      ),
-    );
   }
 
   @override
