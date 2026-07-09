@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      KEYSTORE_PATH: android/liaoleme.jks
+      KEYSTORE_PATH: liaoleme.jks
       KEYSTORE_PASSWORD: ${{ secrets.LIAOLEME_KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.LIAOLEME_KEY_ALIAS }}
       KEY_PASSWORD: ${{ secrets.LIAOLEME_KEY_PASSWORD }}
@@ -36,7 +36,7 @@ jobs:
         run: python3 fix_android.py
 
       - name: Setup signing keystore
-        run: echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/liaoleme.jks
+        run: echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/app/liaoleme.jks
 
       - run: flutter pub get
 
