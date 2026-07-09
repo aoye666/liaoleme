@@ -95,9 +95,9 @@ class _DebugPageState extends State<DebugPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.appColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: Row(
@@ -106,14 +106,14 @@ class _DebugPageState extends State<DebugPage> {
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: AppColors.negativeSubtle,
+                color: context.appColors.negativeSubtle,
                 borderRadius: AppShapes.borderRadiusSm,
               ),
               child: const Center(
                 child: Icon(
                   Icons.bug_report,
                   size: 14,
-                  color: AppColors.negative,
+                  color: context.appColors.negative,
                 ),
               ),
             ),
@@ -123,13 +123,13 @@ class _DebugPageState extends State<DebugPage> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          color: AppColors.textSecondary,
+          color: context.appColors.textSecondary,
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
-            color: AppColors.textSecondary,
+            color: context.appColors.textSecondary,
             onPressed: _refresh,
           ),
         ],
@@ -188,7 +188,7 @@ class _DebugPageState extends State<DebugPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('日志已复制到剪贴板'),
-                    backgroundColor: AppColors.accent,
+                    backgroundColor: context.appColors.accent,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: AppShapes.borderRadius,
@@ -198,15 +198,15 @@ class _DebugPageState extends State<DebugPage> {
               },
               child: Text(
                 '复制',
-                style: AppText.caption.copyWith(color: AppColors.accent),
+                style: AppText.caption.copyWith(color: context.appColors.accent),
               ),
             ),
             child: Container(
               height: 300,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.appColors.surfaceElevated,
                 borderRadius: AppShapes.borderRadiusSm,
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: context.appColors.border),
               ),
               child: ListView.builder(
                 padding: const EdgeInsets.all(AppSpacing.sm),
@@ -233,21 +233,21 @@ class _DebugPageState extends State<DebugPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 16, color: AppColors.textMuted),
+              Icon(icon, size: 16, color: context.appColors.textMuted),
               const SizedBox(width: AppSpacing.sm),
               Text(
                 title,
                 style: AppText.label.copyWith(
-                  color: AppColors.textMuted,
+                  color: context.appColors.textMuted,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -266,16 +266,16 @@ class _DebugPageState extends State<DebugPage> {
     Color levelColor;
     switch (log.level) {
       case 'ERROR':
-        levelColor = AppColors.negative;
+        levelColor = context.appColors.negative;
         break;
       case 'WARN':
         levelColor = Colors.orange;
         break;
       case 'INFO':
-        levelColor = AppColors.accent;
+        levelColor = context.appColors.accent;
         break;
       default:
-        levelColor = AppColors.textMuted;
+        levelColor = context.appColors.textMuted;
     }
 
     return Padding(
@@ -289,7 +289,7 @@ class _DebugPageState extends State<DebugPage> {
             style: AppText.caption.copyWith(
               fontFamily: 'monospace',
               fontSize: 10,
-              color: AppColors.textMuted,
+              color: context.appColors.textMuted,
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -317,7 +317,7 @@ class _DebugPageState extends State<DebugPage> {
               style: AppText.caption.copyWith(
                 fontFamily: 'monospace',
                 fontSize: 11,
-                color: AppColors.textSecondary,
+                color: context.appColors.textSecondary,
               ),
             ),
           ),

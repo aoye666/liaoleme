@@ -8,6 +8,7 @@ import 'time_gated_input.dart';
 import 'stats_page.dart';
 import 'debug_helper.dart';
 import 'debug_page.dart';
+import 'main.dart' show themeProvider;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,6 +19,9 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   final DatabaseHelper _db = DatabaseHelper();
+
+  // 动态颜色访问（根据当前主题亮度）
+  AppThemeColors get _colors => context.appColors;
 
   // 状态变量
   bool _isCheckedIn = false;
@@ -117,7 +121,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('保存失败，请重试'),
-            backgroundColor: AppColors.negative,
+            backgroundColor: _colors.negative,
           ),
         );
       }
@@ -145,7 +149,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('保存失败，请重试'),
-            backgroundColor: AppColors.negative,
+            backgroundColor: _colors.negative,
           ),
         );
       }
@@ -161,17 +165,17 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             Text(
               isSuccess ? '✓ ' : '✗ ',
               style: TextStyle(
-                color: isSuccess ? AppColors.accent : AppColors.negative,
+                color: isSuccess ? _colors.accent : _colors.negative,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               isSuccess ? '克制成功，继续保持' : '记录已保存',
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: const TextStyle(color: _colors.textPrimary),
             ),
           ],
         ),
-        backgroundColor: AppColors.surfaceElevated,
+        backgroundColor: _colors.surfaceElevated,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: AppShapes.borderRadius),
         duration: const Duration(seconds: 2),
@@ -219,7 +223,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: _colors.background,
       appBar: _buildAppBar(),
       body: FadeTransition(
         opacity: _fadeAnimation,
@@ -274,7 +278,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   // AppBar — 左对齐标题 + 右侧操作
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppColors.background,
+      backgroundColor: _colors.background,
       elevation: 0,
       scrolledUnderElevation: 0,
       title: GestureDetector(
@@ -287,14 +291,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.accent,
+                color: _colors.accent,
                 borderRadius: AppShapes.borderRadiusSm,
               ),
               child: const Center(
                 child: Text(
                   'L',
                   style: TextStyle(
-                    color: AppColors.background,
+                    color: _colors.background,
                     fontWeight: FontWeight.w700,
                     fontSize: 18,
                   ),
@@ -310,6 +314,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ),
       ),
       actions: [
+        // 主题切换按钮
+        _buildAppBarAction(
+          icon: _colors.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+          onPressed: () {
+            themeProvider.toggle();
+          },
+        ),
         // 统计按钮
         _buildAppBarAction(
           icon: Icons.bar_chart_rounded,
@@ -350,7 +361,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           alignment: Alignment.center,
           child: Icon(
             icon,
-            color: AppColors.textSecondary,
+            color: _colors.textSecondary,
             size: 22,
           ),
         ),
@@ -367,7 +378,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           title.toUpperCase(),
           style: AppText.label.copyWith(
             letterSpacing: 1.5,
-            color: AppColors.textMuted,
+            color: _colors.textMuted,
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -375,7 +386,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           width: 24,
           height: 2,
           decoration: BoxDecoration(
-            color: AppColors.accent,
+            color: _colors.accent,
             borderRadius: BorderRadius.circular(1),
           ),
         ),
@@ -389,9 +400,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: _colors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: _colors.border),
         boxShadow: AppShadows.card,
       ),
       child: Column(
@@ -446,16 +457,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     required bool isSuccess,
     required VoidCallback? onPressed,
   }) {
-    final Color activeColor = isSuccess ? AppColors.accent : AppColors.negative;
+    final Color activeColor = isSuccess ? _colors.accent : _colors.negative;
     final Color activeBg = isSuccess
-        ? AppColors.accentSubtle
-        : AppColors.negativeSubtle;
+        ? _colors.accentSubtle
+        : _colors.negativeSubtle;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
       child: Material(
-        color: isSelected ? activeBg : AppColors.surface,
+        color: isSelected ? activeBg : _colors.surface,
         borderRadius: AppShapes.borderRadius,
         child: InkWell(
           onTap: onPressed,
@@ -467,7 +478,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               border: Border.all(
                 color: isSelected
                     ? activeColor
-                    : AppColors.border,
+                    : _colors.border,
                 width: isSelected ? 1.5 : 1,
               ),
             ),
@@ -478,8 +489,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   color: isSelected
                       ? activeColor
                       : (onPressed == null
-                          ? AppColors.textMuted
-                          : AppColors.textPrimary),
+                          ? _colors.textMuted
+                          : _colors.textPrimary),
                 ),
               ),
             ),
@@ -499,11 +510,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       decoration: BoxDecoration(
         color: isSuccess
-            ? AppColors.accentSubtle
-            : AppColors.negativeSubtle,
+            ? _colors.accentSubtle
+            : _colors.negativeSubtle,
         borderRadius: AppShapes.borderRadiusSm,
         border: Border.all(
-          color: isSuccess ? AppColors.accent : AppColors.negative,
+          color: isSuccess ? _colors.accent : _colors.negative,
         ),
       ),
       child: Row(
@@ -512,13 +523,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Icon(
             isSuccess ? Icons.check_circle : Icons.info,
             size: 16,
-            color: isSuccess ? AppColors.accent : AppColors.negative,
+            color: isSuccess ? _colors.accent : _colors.negative,
           ),
           const SizedBox(width: AppSpacing.xs),
           Text(
             '已记录: $_checkinResult',
             style: AppText.caption.copyWith(
-              color: isSuccess ? AppColors.accent : AppColors.negative,
+              color: isSuccess ? _colors.accent : _colors.negative,
               fontWeight: FontWeight.w500,
             ),
           ),

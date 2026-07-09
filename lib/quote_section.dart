@@ -87,9 +87,9 @@ class _QuoteSectionState extends State<QuoteSection>
         width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.appColors.surface,
           borderRadius: AppShapes.borderRadius,
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: context.appColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,14 +101,14 @@ class _QuoteSectionState extends State<QuoteSection>
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.accentSubtle,
+                    color: context.appColors.accentSubtle,
                     borderRadius: AppShapes.borderRadiusSm,
                   ),
                   child: const Center(
                     child: Text(
                       '✦',
                       style: TextStyle(
-                        color: AppColors.accent,
+                        color: context.appColors.accent,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
@@ -119,7 +119,7 @@ class _QuoteSectionState extends State<QuoteSection>
                 Text(
                   '每日一言',
                   style: AppText.label.copyWith(
-                    color: AppColors.accent,
+                    color: context.appColors.accent,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -132,7 +132,7 @@ class _QuoteSectionState extends State<QuoteSection>
             Text(
               _quote,
               style: AppText.body.copyWith(
-                color: AppColors.textPrimary,
+                color: context.appColors.textPrimary,
                 fontSize: 16,
                 height: 1.7,
                 letterSpacing: 0.2,
@@ -147,13 +147,13 @@ class _QuoteSectionState extends State<QuoteSection>
                   Container(
                     width: 12,
                     height: 1,
-                    color: AppColors.border,
+                    color: context.appColors.border,
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     _from,
                     style: AppText.caption.copyWith(
-                      color: AppColors.textMuted,
+                      color: context.appColors.textMuted,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -172,9 +172,9 @@ class _QuoteSectionState extends State<QuoteSection>
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -185,7 +185,7 @@ class _QuoteSectionState extends State<QuoteSection>
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: context.appColors.surfaceElevated,
                   borderRadius: AppShapes.borderRadiusSm,
                 ),
               ),
@@ -194,7 +194,7 @@ class _QuoteSectionState extends State<QuoteSection>
                 width: 60,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceElevated,
+                  color: context.appColors.surfaceElevated,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -205,7 +205,7 @@ class _QuoteSectionState extends State<QuoteSection>
             width: double.infinity,
             height: 16,
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: context.appColors.surfaceElevated,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -214,7 +214,7 @@ class _QuoteSectionState extends State<QuoteSection>
             width: 200,
             height: 16,
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: context.appColors.surfaceElevated,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

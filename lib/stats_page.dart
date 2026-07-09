@@ -38,7 +38,7 @@ class _StatsPageState extends State<StatsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('加载失败，请稍后重试'),
-            backgroundColor: AppColors.negative,
+            backgroundColor: context.appColors.negative,
           ),
         );
       }
@@ -48,22 +48,22 @@ class _StatsPageState extends State<StatsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.appColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: context.appColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         title: const Text('数据统计', style: AppText.title),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          color: AppColors.textSecondary,
+          color: context.appColors.textSecondary,
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(
-                color: AppColors.accent,
+                color: context.appColors.accent,
                 strokeWidth: 2,
               ),
             )
@@ -95,9 +95,9 @@ class _StatsPageState extends State<StatsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
         boxShadow: AppShadows.card,
       ),
       child: Column(
@@ -106,7 +106,7 @@ class _StatsPageState extends State<StatsPage> {
           Text(
             '近90天总览',
             style: AppText.label.copyWith(
-              color: AppColors.textMuted,
+              color: context.appColors.textMuted,
               letterSpacing: 1.5,
             ),
           ),
@@ -131,7 +131,7 @@ class _StatsPageState extends State<StatsPage> {
             Container(
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: context.appColors.surfaceElevated,
                 borderRadius: BorderRadius.circular(2),
               ),
               child: FractionallySizedBox(
@@ -139,7 +139,7 @@ class _StatsPageState extends State<StatsPage> {
                 widthFactor: noCount / totalDays,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: context.appColors.accent,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -148,7 +148,7 @@ class _StatsPageState extends State<StatsPage> {
             const SizedBox(height: AppSpacing.sm),
             Text(
               '成功率 ${(noCount * 100 / totalDays).toStringAsFixed(1)}%',
-              style: AppText.caption.copyWith(color: AppColors.accent),
+              style: AppText.caption.copyWith(color: context.appColors.accent),
             ),
           ],
         ],
@@ -178,7 +178,7 @@ class _StatsPageState extends State<StatsPage> {
     return Container(
       width: 1,
       height: 32,
-      color: AppColors.border,
+      color: context.appColors.border,
     );
   }
 
@@ -188,9 +188,9 @@ class _StatsPageState extends State<StatsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +198,7 @@ class _StatsPageState extends State<StatsPage> {
           Text(
             '打卡热力图',
             style: AppText.label.copyWith(
-              color: AppColors.textMuted,
+              color: context.appColors.textMuted,
               letterSpacing: 1.5,
             ),
           ),
@@ -213,11 +213,11 @@ class _StatsPageState extends State<StatsPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _buildLegendItem('无记录', AppColors.surfaceElevated),
+              _buildLegendItem('无记录', context.appColors.surfaceElevated),
               const SizedBox(width: AppSpacing.sm),
-              _buildLegendItem('不撸', AppColors.accent),
+              _buildLegendItem('不撸', context.appColors.accent),
               const SizedBox(width: AppSpacing.sm),
-              _buildLegendItem('撸', AppColors.border),
+              _buildLegendItem('撸', context.appColors.border),
             ],
           ),
         ],
@@ -312,10 +312,10 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Color _getHeatmapColor(Map<String, dynamic>? record) {
-    if (record == null) return AppColors.surfaceElevated;
+    if (record == null) return context.appColors.surfaceElevated;
     final result = record['result'] as String;
-    if (result == '不撸') return AppColors.accent;
-    return AppColors.border; // 撸 = 微妙灰色
+    if (result == '不撸') return context.appColors.accent;
+    return context.appColors.border; // 撸 = 微妙灰色
   }
 
   Widget _buildLegendItem(String label, Color color) {
@@ -360,9 +360,9 @@ class _StatsPageState extends State<StatsPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,7 +370,7 @@ class _StatsPageState extends State<StatsPage> {
           Text(
             '近30天次数趋势',
             style: AppText.label.copyWith(
-              color: AppColors.textMuted,
+              color: context.appColors.textMuted,
               letterSpacing: 1.5,
             ),
           ),
@@ -385,7 +385,7 @@ class _StatsPageState extends State<StatsPage> {
                   drawVerticalLine: false,
                   horizontalInterval: 1,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: AppColors.borderSubtle,
+                    color: context.appColors.borderSubtle,
                     strokeWidth: 1,
                   ),
                 ),
@@ -433,7 +433,7 @@ class _StatsPageState extends State<StatsPage> {
                   LineChartBarData(
                     spots: spots,
                     isCurved: true,
-                    color: AppColors.accent,
+                    color: context.appColors.accent,
                     barWidth: 2,
                     isStrokeCapRound: true,
                     dotData: FlDotData(
@@ -441,24 +441,24 @@ class _StatsPageState extends State<StatsPage> {
                       getDotPainter: (spot, percent, barData, index) {
                         return FlDotCirclePainter(
                           radius: 3,
-                          color: AppColors.accent,
+                          color: context.appColors.accent,
                           strokeWidth: 0,
                         );
                       },
                     ),
                     belowBarData: BarAreaData(
                       show: true,
-                      color: AppColors.accent.withOpacity(0.1),
+                      color: context.appColors.accent.withOpacity(0.1),
                     ),
                   ),
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (_) => AppColors.surfaceElevated,
+                    getTooltipColor: (_) => context.appColors.surfaceElevated,
                     getTooltipItems: (spots) => spots.map((spot) {
                       return LineTooltipItem(
                         '${spot.y.toInt()} 次',
-                        AppText.caption.copyWith(color: AppColors.textPrimary),
+                        AppText.caption.copyWith(color: context.appColors.textPrimary),
                       );
                     }).toList(),
                   ),

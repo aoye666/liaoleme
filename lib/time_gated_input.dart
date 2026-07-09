@@ -25,9 +25,9 @@ class TimeGatedInput extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.appColors.surface,
         borderRadius: AppShapes.borderRadius,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.appColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,13 +47,13 @@ class TimeGatedInput extends StatelessWidget {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.accentSubtle,
+                    color: context.appColors.accentSubtle,
                     borderRadius: AppShapes.borderRadiusSm,
                   ),
                   child: Text(
                     '可编辑',
                     style: AppText.caption.copyWith(
-                      color: AppColors.accent,
+                      color: context.appColors.accent,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -96,9 +96,9 @@ class TimeGatedInput extends StatelessWidget {
             vertical: AppSpacing.md,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: context.appColors.surfaceElevated,
             borderRadius: AppShapes.borderRadiusSm,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.appColors.border),
           ),
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
@@ -131,8 +131,8 @@ class TimeGatedInput extends StatelessWidget {
   }) {
     return Material(
       color: onPressed != null
-          ? AppColors.accent
-          : AppColors.surfaceElevated,
+          ? context.appColors.accent
+          : context.appColors.surfaceElevated,
       borderRadius: AppShapes.borderRadiusSm,
       child: InkWell(
         onTap: onPressed,
@@ -145,8 +145,8 @@ class TimeGatedInput extends StatelessWidget {
             icon,
             size: 20,
             color: onPressed != null
-                ? AppColors.background
-                : AppColors.textMuted,
+                ? context.appColors.background
+                : context.appColors.textMuted,
           ),
         ),
       ),
@@ -172,22 +172,22 @@ class TimeGatedInput extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated.withOpacity(0.5),
+        color: context.appColors.surfaceElevated.withOpacity(0.5),
         borderRadius: AppShapes.borderRadiusSm,
-        border: Border.all(color: AppColors.borderSubtle),
+        border: Border.all(color: context.appColors.borderSubtle),
       ),
       child: Column(
         children: [
           Icon(
             lockIcon,
             size: 28,
-            color: AppColors.textMuted,
+            color: context.appColors.textMuted,
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
             lockText,
             style: AppText.bodyStrong.copyWith(
-              color: AppColors.textMuted,
+              color: context.appColors.textMuted,
             ),
           ),
           const SizedBox(height: 2),

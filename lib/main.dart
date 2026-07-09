@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
+import 'dart:async';
 import 'theme.dart';
 import 'home_page.dart';
 import 'debug_helper.dart';
@@ -10,24 +11,92 @@ import 'debug_helper.dart';
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
+// ===== 主题状态管理 =====
+// 自动模式：根据系统时间切换（>=20:00 暗色, >=06:00 亮色）
+// 手动模式：用户点击按钮覆盖，1小时后恢复自动
+class ThemeProvider extends ChangeNotifier {
+  bool _autoMode = true;
+  bool? _manualIsDark;  // null 表示未手动设置
+  DateTime? _lastManualToggle;
+  bool? _cachedIsDark;  // 上次通知时的 isDark 值，用于检测变化
+
+  bool get isDark {
+    if (_autoMode || _manualIsDark == null) {
+      final hour = DateTime.now().hour;
+      return hour >= 20 || hour < 6;
+    }
+    return _manualIsDark!;
+  }
+
+  bool get autoMode => _autoMode;
+
+  Brightness get brightness => isDark ? Brightness.dark : Brightness.light;
+
+  // 切换到相反主题
+  void toggle() {
+    _manualIsDark = !isDark;
+    _autoMode = false;
+    _lastManualToggle = DateTime.now();
+    notifyListeners();
+    DebugHelper.info('主题切换: ${_manualIsDark! ? "暗色" : "亮色"} (手动)');
+  }
+
+  // 恢复自动模式
+  void setAutoMode() {
+    _autoMode = true;
+    _manualIsDark = null;
+    _lastManualToggle = null;
+    notifyListeners();
+    DebugHelper.info('主题切换: 自动模式');
+  }
+
+  // 检查并更新自动模式下的主题（每分钟调用一次）
+  void checkAutoUpdate() {
+    // 手动模式下，检查是否已经过了1小时，恢复自动
+    if (!_autoMode && _lastManualToggle != null) {
+      final elapsed = DateTime.now().difference(_lastManualToggle!);
+      if (elapsed.inMinutes >= 60) {
+        _autoMode = true;
+        _manualIsDark = null;
+        _lastManualToggle = null;
+      }
+    }
+
+    // 检查 isDark 是否发生变化，有变化才通知
+    final current = isDark;
+    if (_cachedIsDark != current) {
+      _cachedIsDark = current;
+      notifyListeners();
+      DebugHelper.info('主题切换: ${current ? "暗色" : "亮色"} (自动)');
+    }
+  }
+}
+
+final themeProvider = ThemeProvider();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // 设置状态栏为透明，内容延伸到状态栏
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: AppColors.background,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
 
   // ===== 调试系统初始化（最先启动，记录全局流程） =====
   await DebugHelper.enable();
   DebugHelper.track('调试系统启动');
-  DebugHelper.info('撸了么 v2026.07.09 taste-skill 重构版启动');
+  DebugHelper.info('撸了么 暗色/亮色模式切换版启动');
   DebugHelper.info('平台: ${Platform.isAndroid ? "Android" : "其他"}');
+
+  // 初始化主题
+  DebugHelper.info('当前模式: ${themeProvider.isDark ? "暗色" : "亮色"}');
+
+  // 设置状态栏为透明，内容延伸到状态栏
+  _updateSystemUI(themeProvider.brightness);
+
+  // 定时检查主题更新（每分钟检查一次，整点自动切换）
+  Timer.periodic(const Duration(minutes: 1), (_) {
+    final wasDark = themeProvider.isDark;
+    themeProvider.checkAutoUpdate();
+    if (themeProvider.isDark != wasDark) {
+      _updateSystemUI(themeProvider.brightness);
+    }
+  });
 
   // ---- 通知初始化 ----
   DebugHelper.track('开始初始化通知');
@@ -41,6 +110,18 @@ void main() async {
   // ---- 启动完成 ----
   DebugHelper.track('进入主界面');
   runApp(const LiaoLeMeApp());
+}
+
+// 根据亮度更新系统状态栏样式
+void _updateSystemUI(Brightness brightness) {
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+      systemNavigationBarColor: brightness == Brightness.dark ? AppColors.background : AppColorsLight.background,
+      systemNavigationBarIconBrightness: brightness == Brightness.dark ? Brightness.light : Brightness.dark,
+    ),
+  );
 }
 
 // 初始化本地通知
@@ -140,11 +221,18 @@ class LiaoLeMeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '撸了么',
-      debugShowCheckedModeBanner: false,
-      theme: buildAppTheme(),
-      home: const HomePage(),
+    return ListenableBuilder(
+      listenable: themeProvider,
+      builder: (context, _) {
+        // 主题变化时更新系统UI
+        _updateSystemUI(themeProvider.brightness);
+        return MaterialApp(
+          title: '撸了么',
+          debugShowCheckedModeBanner: false,
+          theme: buildAppTheme(themeProvider.brightness),
+          home: const HomePage(),
+        );
+      },
     );
   }
 }

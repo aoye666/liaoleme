@@ -91,15 +91,15 @@ class _SpinWheelState extends State<SpinWheel>
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: widget.isDisabled
-                          ? AppColors.border
-                          : AppColors.accent,
+                          ? context.appColors.border
+                          : context.appColors.accent,
                       width: 2,
                     ),
                     boxShadow: widget.isDisabled
                         ? []
                         : [
                             BoxShadow(
-                              color: AppColors.accent.withOpacity(0.15),
+                              color: context.appColors.accent.withOpacity(0.15),
                               blurRadius: 24,
                               spreadRadius: 2,
                             ),
@@ -108,7 +108,7 @@ class _SpinWheelState extends State<SpinWheel>
                   child: ClipOval(
                     child: CustomPaint(
                       size: const Size(220, 220),
-                      painter: _WheelPainter(isDisabled: widget.isDisabled),
+                      painter: _WheelPainter(isDisabled: widget.isDisabled, colors: context.appColors),
                       child: _WheelLabels(isDisabled: widget.isDisabled),
                     ),
                   ),
@@ -125,8 +125,8 @@ class _SpinWheelState extends State<SpinWheel>
           widget.isDisabled ? '今日已打卡' : '点击转盘开始',
           style: AppText.caption.copyWith(
             color: widget.isDisabled
-                ? AppColors.textMuted
-                : AppColors.textSecondary,
+                ? context.appColors.textMuted
+                : context.appColors.textSecondary,
           ),
         ),
       ],
@@ -137,8 +137,9 @@ class _SpinWheelState extends State<SpinWheel>
 // 转盘扇形绘制
 class _WheelPainter extends CustomPainter {
   final bool isDisabled;
+  final AppThemeColors colors;
 
-  _WheelPainter({required this.isDisabled});
+  _WheelPainter({required this.isDisabled, required this.colors});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -147,7 +148,7 @@ class _WheelPainter extends CustomPainter {
 
     // 左半 = 不撸 (深色)
     final paintLeft = Paint()
-      ..color = isDisabled ? AppColors.surfaceElevated : AppColors.surface
+      ..color = isDisabled ? colors.surfaceElevated : colors.surface
       ..style = PaintingStyle.fill;
 
     canvas.drawArc(
@@ -161,8 +162,8 @@ class _WheelPainter extends CustomPainter {
     // 右半 = 撸 (带色)
     final paintRight = Paint()
       ..color = isDisabled
-          ? AppColors.border
-          : AppColors.accentSubtle.withOpacity(0.3)
+          ? colors.border
+          : colors.accentSubtle.withOpacity(0.3)
       ..style = PaintingStyle.fill;
 
     canvas.drawArc(
@@ -199,8 +200,8 @@ class _WheelLabels extends StatelessWidget {
               style: AppText.cardTitle.copyWith(
                 fontSize: 22,
                 color: isDisabled
-                    ? AppColors.textMuted
-                    : AppColors.accent,
+                    ? context.appColors.textMuted
+                    : context.appColors.accent,
               ),
             ),
           ),
@@ -216,8 +217,8 @@ class _WheelLabels extends StatelessWidget {
               style: AppText.cardTitle.copyWith(
                 fontSize: 22,
                 color: isDisabled
-                    ? AppColors.border
-                    : AppColors.textPrimary,
+                    ? context.appColors.border
+                    : context.appColors.textPrimary,
               ),
             ),
           ),
@@ -237,20 +238,21 @@ class TrianglePointer extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size(24, 14),
-      painter: _TrianglePainter(isDisabled: isDisabled),
+      painter: _TrianglePainter(isDisabled: isDisabled, colors: context.appColors),
     );
   }
 }
 
 class _TrianglePainter extends CustomPainter {
   final bool isDisabled;
+  final AppThemeColors colors;
 
-  _TrianglePainter({required this.isDisabled});
+  _TrianglePainter({required this.isDisabled, required this.colors});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = isDisabled ? AppColors.border : AppColors.accent
+      ..color = isDisabled ? colors.border : colors.accent
       ..style = PaintingStyle.fill;
 
     final path = Path()
@@ -263,7 +265,7 @@ class _TrianglePainter extends CustomPainter {
 
     // 描边
     final strokePaint = Paint()
-      ..color = AppColors.background
+      ..color = colors.background
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
 
