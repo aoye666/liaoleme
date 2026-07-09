@@ -198,6 +198,14 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
         actions: [
           IconButton(
+            icon: const Icon(Icons.bug_report, color: Colors.white54, size: 20),
+            tooltip: '调试日志',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const DebugPage()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.bar_chart, color: Colors.white),
             onPressed: () => Navigator.push(
               context,
