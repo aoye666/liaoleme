@@ -1,19 +1,21 @@
 import re
-import os
 
 with open("android/app/build.gradle.kts", "r") as f:
-    c = f.read()
+    content = f.read()
+
+print("=== ORIGINAL (first 80 lines) ===")
+for i, line in enumerate(content.split('\n')[:80], 1):
+    print(f"{i:3}: {line}")
 
 # Fix NDK version
-c = c.replace('ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')
+content = content.replace('ndkVersion = flutter.ndkVersion', 'ndkVersion = "27.0.12077973"')
 
 # Enable core library desugaring
-c = c.replace('compileOptions {', 'compileOptions {\n    isCoreLibraryDesugaringEnabled = true')
+content = content.replace('compileOptions {', 'compileOptions {\n    isCoreLibraryDesugaringEnabled = true')
 
-# Add signing configs - use fixed keystore to avoid signature conflicts
-# This must be inside android { } block
-signing_block = '''
-    signingConfigs {
+# Strategy: Insert signingConfigs block AND fix references in one pass
+# The trick: add signingConfigs block right before "buildTypes {" line
+signing_block = """    signingConfigs {
         create("release") {
             storeFile = file(System.getenv("KEYSTORE_PATH") ?: "liaoleme.jks")
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
@@ -21,40 +23,34 @@ signing_block = '''
             keyPassword = System.getenv("KEY_PASSWORD") ?: ""
         }
     }
-'''
 
-# Insert signingConfigs inside android { } block
-# Find the android { block and insert after the opening brace
-pattern = r'(android\s*\{)'
-match = re.search(pattern, c)
-if match and "signingConfigs" not in c:
-    insert_pos = match.end()
-    c = c[:insert_pos] + signing_block + c[insert_pos:]
+"""
 
-# Fix release build type to use our signing config
-# Default is: signingConfig = signingConfigs.getByName("debug")
-# Change to: signingConfig = signingConfigs.getByName("release")
-c = c.replace(
+# Insert before "buildTypes {"
+content = content.replace('\n    buildTypes {\n', '\n' + signing_block + '    buildTypes {\n')
+
+# Now fix the signingConfig reference: replace "debug" with "release"
+content = content.replace(
     'signingConfig = signingConfigs.getByName("debug")',
     'signingConfig = signingConfigs.getByName("release")'
 )
 
-# Also fix the debug build type to use our keystore too
-# Add: debug { signingConfig = signingConfigs.getByName("release") }
-debug_pattern = r'(getByName\("debug"\)\s*\{)'
-def add_debug_signing(match):
-    return match.group(1) + '\n            signingConfig = signingConfigs.getByName("release")'
-c = re.sub(debug_pattern, add_debug_signing, c)
+# Add debug build type if not present
+if 'getByName("debug")' not in content:
+    content = content.replace(
+        'release {\n            signingConfig = signingConfigs.getByName("release")\n        }',
+        'release {\n            signingConfig = signingConfigs.getByName("release")\n        }\n        debug {\n            signingConfig = signingConfigs.getByName("release")\n        }'
+    )
 
 # Add dependencies block
-if "coreLibraryDesugaring" not in c:
-    c += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
+if "coreLibraryDesugaring" not in content:
+    content += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")\n}\n'
 
-# Remove the isMinifyEnabled line if present (can cause issues in some setups)
-c = c.replace('isMinifyEnabled = true', 'isMinifyEnabled = false')
+# Remove isMinifyEnabled if present
+content = content.replace('isMinifyEnabled = true', 'isMinifyEnabled = false')
 
 with open("android/app/build.gradle.kts", "w") as f:
-    f.write(c)
+    f.write(content)
 
-print("=== Patched build.gradle.kts ===")
+print("\n=== Patched build.gradle.kts ===")
 print(open("android/app/build.gradle.kts").read())

@@ -8,6 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      KEYSTORE_PATH: android/liaoleme.jks
+      KEYSTORE_PASSWORD: ${{ secrets.LIAOLEME_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.LIAOLEME_KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.LIAOLEME_KEY_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -31,12 +36,7 @@ jobs:
         run: python3 fix_android.py
 
       - name: Setup signing keystore
-        run: |
-          echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/liaoleme.jks
-          echo "KEYSTORE_PATH=android/liaoleme.jks" >> $GITHUB_ENV
-          echo "KEYSTORE_PASSWORD=${{ secrets.LIAOLEME_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
-          echo "KEY_ALIAS=${{ secrets.LIAOLEME_KEY_ALIAS }}" >> $GITHUB_ENV
-          echo "KEY_PASSWORD=${{ secrets.LIAOLEME_KEY_PASSWORD }}" >> $GITHUB_ENV
+        run: echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/liaoleme.jks
 
       - run: flutter pub get
 
@@ -62,7 +62,7 @@ jobs:
       - name: Get version from pubspec
         id: version
         run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //')
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v2
