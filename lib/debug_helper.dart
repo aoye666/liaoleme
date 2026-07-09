@@ -82,7 +82,8 @@ class DebugHelper {
     }
   }
 
-  /// 记录启动步骤（同步，不会 throw）
+  /// 记录启动步骤 - 用于追踪 app 启动流程
+  /// 例如：DebugHelper.track('通知初始化完成')
   static void track(String step) {
     final entry = '[启动] $step';
     startupSteps.add(entry);
