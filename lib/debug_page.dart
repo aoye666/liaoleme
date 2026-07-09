@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // 剪贴板
 import 'dart:async';
 import 'debug_helper.dart';
 import 'database_helper.dart';
@@ -351,15 +352,20 @@ class _DebugPageState extends State<DebugPage> {
           child: OutlinedButton.icon(
             onPressed: () async {
               final text = await DebugHelper.getLogText();
-              if (mounted) {
+              if (text.isNotEmpty && mounted) {
+                // 真的复制到剪贴板
+                await Clipboard.setData(ClipboardData(text: text));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('已复制到剪贴板（${text.length}字符）')),
+                  SnackBar(content: Text('已复制 ${text.length} 字符到剪贴板')),
                 );
-                // 用 SnackBar action 来提供复制
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('没有日志可复制')),
+                );
               }
             },
             icon: const Icon(Icons.copy, size: 16),
-            label: const Text('查看完整日志'),
+            label: const Text('复制完整日志'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.cyan[300],
               side: BorderSide(color: Colors.cyan[300]!),

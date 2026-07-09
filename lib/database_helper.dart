@@ -2,14 +2,26 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'debug_helper.dart';
 
-// 数据库助手类
+/// 数据库助手类 - 单例模式，全局共享数据库连接
+/// 
+/// 表结构 checkins:
+/// - id: 自增主键
+/// - date: 日期 (yyyy-MM-dd)
+/// - method: 打卡方式 ('spin'=转盘, 'button'=按钮)
+/// - result: 打卡结果 ('撸'/'不撸')
+/// - count: 当日次数（仅在 isCheckedIn=true 且 hour>=20 时可编辑）
+/// - timestamp: 打卡时间戳
 class DatabaseHelper {
+  // 单例模式
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   DatabaseHelper._internal();
 
+  // 数据库实例（延迟初始化）
   static Database? _database;
 
+  /// 获取数据库实例 - 首次调用时初始化
+  /// 会自动设置 PRAGMA journal_mode=DELETE（避免 WAL 文件损坏问题）
   Future<Database> get database async {
     if (_database != null) return _database!;
     DebugHelper.track('DB: 首次获取数据库实例');
@@ -24,6 +36,7 @@ class DatabaseHelper {
     }
   }
 
+  /// 初始化数据库 - 打开或创建数据库文件
   Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
     String path = join(dbPath, 'liaoleme.db');
@@ -31,11 +44,12 @@ class DatabaseHelper {
     DebugHelper.info('getDatabasesPath: $dbPath');
     return await openDatabase(
       path,
-      version: 1,
-      onCreate: _onCreate,
+      version: 1,  // 数据库版本（用于未来迁移）
+      onCreate: _onCreate,  // 首次创建表结构
       onConfigure: (db) async {
+        // 设置日志模式：DELETE 模式（vs 默认 WAL）
+        // 可以避免异常退出后 WAL 文件损坏导致的崩溃
         DebugHelper.track('DB: 配置日志模式为 DELETE');
-        // 注意：PRAGMA 返回结果集，必须用 rawQuery 而非 execute
         try {
           await db.rawQuery('PRAGMA journal_mode=DELETE');
           DebugHelper.track('DB: 日志模式配置完成');
@@ -46,6 +60,7 @@ class DatabaseHelper {
     );
   }
 
+  /// 创建表结构 - 首次创建数据库时执行
   Future<void> _onCreate(Database db, int version) async {
     DebugHelper.track('DB: 创建表结构 (version=$version)');
     await db.execute('''
@@ -62,6 +77,7 @@ class DatabaseHelper {
   }
 
   // 插入打卡记录
+  // 如果日期已存在则覆盖（upsert 逻辑）
   Future<int> insertCheckin({
     required String date,
     required String method,
@@ -79,13 +95,14 @@ class DatabaseHelper {
         'count': count,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.replace,  // 已存在则覆盖
     );
     DebugHelper.info('DB: insertCheckin 成功 id=$id');
     return id;
   }
 
-  // 查询今日打卡记录
+  // 查询某一天的打卡记录
+  // 返回该日期的记录，或 null（不存在）
   Future<Map<String, dynamic>?> getCheckinByDate(String date) async {
     DebugHelper.track('DB: getCheckinByDate(date=$date)');
     final db = await database;
@@ -98,7 +115,8 @@ class DatabaseHelper {
     return result.isEmpty ? null : result.first;
   }
 
-  // 更新次数
+  // 更新次数 - 用于用户手动调整今日次数
+  // 返回受影响的行数（通常为1，日期不存在则为0）
   Future<int> updateCount(String date, int count) async {
     DebugHelper.info('DB: updateCount(date=$date, count=$count)');
     final db = await database;
@@ -112,7 +130,8 @@ class DatabaseHelper {
     return affected;
   }
 
-  // 获取所有打卡记录（按日期升序）
+  // 获取所有打卡记录 - 用于统计页面
+  // 按日期升序排列（最早的最先）
   Future<List<Map<String, dynamic>>> getAllCheckins() async {
     DebugHelper.track('DB: getAllCheckins');
     final db = await database;
@@ -124,7 +143,8 @@ class DatabaseHelper {
     return result;
   }
 
-  // 获取最近 n 天的打卡记录
+  // 获取最近 n 天的打卡记录 - 用于热力图展示
+  // days: 最近多少天（如 90 = 最近3个月）
   Future<List<Map<String, dynamic>>> getRecentCheckins(int days) async {
     DebugHelper.info('DB: getRecentCheckins(days=$days)');
     final db = await database;
@@ -141,14 +161,14 @@ class DatabaseHelper {
     return result;
   }
 
-  // 检查今天是否已打卡
+  // 检查今天是否已打卡 - 用于首页状态判断
   Future<bool> isCheckedInToday() async {
     final today = _formatDate(DateTime.now());
     final record = await getCheckinByDate(today);
     return record != null;
   }
 
-  // 格式化日期为 yyyy-MM-dd
+  // 工具方法：DateTime 转字符串 yyyy-MM-dd
   static String _formatDate(DateTime date) {
     return '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
   }
