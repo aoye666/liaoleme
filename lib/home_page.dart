@@ -5,6 +5,8 @@ import 'quote_section.dart';
 import 'spin_wheel.dart';
 import 'time_gated_input.dart';
 import 'stats_page.dart';
+import 'debug_helper.dart';
+import 'debug_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,38 +25,53 @@ class _HomePageState extends State<HomePage> {
   bool _isSpinning = false;
   int _todayCount = 0;
   
+  // 调试入口 — 标题连击计数
+  int _titleTapCount = 0;
+  DateTime? _lastTitleTap;
+  
   // 时间门控：晚8点后
   bool get _isAfter8PM => DateTime.now().hour >= 20;
 
   @override
   void initState() {
     super.initState();
+    DebugHelper.track('HomePage.initState');
     _loadTodayStatus();
   }
 
   Future<void> _loadTodayStatus() async {
+    DebugHelper.track('_loadTodayStatus: 开始加载');
     try {
       final today = _formatDate(DateTime.now());
+      DebugHelper.info('查询今日记录: date=$today');
       final record = await _db.getCheckinByDate(today);
       
       if (record != null) {
+        DebugHelper.info('今日已打卡: result=${record['result']}, method=${record['method']}, count=${record['count']}');
         setState(() {
           _isCheckedIn = true;
           _checkinResult = record['result'];
           _checkinMethod = record['method'];
           _todayCount = record['count'] ?? 0;
         });
+        DebugHelper.track('_loadTodayStatus: 已打卡');
+      } else {
+        DebugHelper.info('今日未打卡');
+        DebugHelper.track('_loadTodayStatus: 未打卡');
       }
     } catch (e) {
-      debugPrint('加载今日状态失败: $e');
+      DebugHelper.error('加载今日状态失败: $e');
       // 数据库异常降级：保持空状态，用户仍然可以正常打卡
     }
   }
 
   void _onSpinComplete(String result) async {
+    DebugHelper.info('转盘结果: $result');
     try {
       final today = _formatDate(DateTime.now());
+      DebugHelper.track('打卡: 转盘，开始写入数据库');
       await _db.insertCheckin(date: today, method: 'spin', result: result);
+      DebugHelper.track('打卡: 转盘，写入完成');
       
       setState(() {
         _isSpinning = false;
@@ -65,7 +82,7 @@ class _HomePageState extends State<HomePage> {
       
       _showResultDialog(result);
     } catch (e) {
-      debugPrint('打卡保存失败: $e');
+      DebugHelper.error('转盘保存失败: $e');
       if (mounted) {
         setState(() => _isSpinning = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -76,9 +93,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onButtonSelect(String result) async {
+    DebugHelper.info('手动选择: $result');
     try {
       final today = _formatDate(DateTime.now());
+      DebugHelper.track('打卡: 手动按钮，开始写入数据库');
       await _db.insertCheckin(date: today, method: 'button', result: result);
+      DebugHelper.track('打卡: 手动按钮，写入完成');
       
       setState(() {
         _isCheckedIn = true;
@@ -88,7 +108,7 @@ class _HomePageState extends State<HomePage> {
       
       _showResultDialog(result);
     } catch (e) {
-      debugPrint('打卡保存失败: $e');
+      DebugHelper.error('手动保存失败: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('保存失败，请重试')),
@@ -127,9 +147,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _updateCount(int count) async {
-    final today = _formatDate(DateTime.now());
-    await _db.updateCount(today, count);
-    setState(() => _todayCount = count);
+    DebugHelper.info('更新次数: $count');
+    try {
+      final today = _formatDate(DateTime.now());
+      await _db.updateCount(today, count);
+      setState(() => _todayCount = count);
+      DebugHelper.track('次数更新成功: $count');
+    } catch (e) {
+      DebugHelper.error('次数更新失败: $e');
+    }
   }
 
   @override
@@ -138,12 +164,35 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text(
-          '撸了么',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
+        title: GestureDetector(
+          onTap: () {
+            final now = DateTime.now();
+            // 1秒内连续点击才计数
+            if (_lastTitleTap != null &&
+                now.difference(_lastTitleTap!) < const Duration(seconds: 1)) {
+              _titleTapCount++;
+            } else {
+              _titleTapCount = 1;
+            }
+            _lastTitleTap = now;
+
+            // 连击5次进入调试页
+            if (_titleTapCount >= 5) {
+              _titleTapCount = 0;
+              DebugHelper.info('🛠️ 调试入口触发');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DebugPage()),
+              );
+            }
+          },
+          child: const Text(
+            '撸了么',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
           ),
         ),
         centerTitle: true,

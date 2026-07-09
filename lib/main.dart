@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:io';
 import 'home_page.dart';
+import 'debug_helper.dart';
 
 // 全局通知插件实例
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -10,13 +11,24 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 通知初始化失败不崩 app，静默降级
+  // ===== 调试系统初始化（最先启动，记录全局流程） =====
+  await DebugHelper.enable();
+  DebugHelper.track('调试系统启动');
+  DebugHelper.info('撸了么 v2026.07.08.2333 启动');
+  DebugHelper.info('平台: ${Platform.isAndroid ? "Android" : "其他"}');
+
+  // ---- 通知初始化 ----
+  DebugHelper.track('开始初始化通知');
+  DebugHelper.info('通知版本: flutter_local_notifications');
   try {
     await _initNotifications();
+    DebugHelper.track('通知初始化完成');
   } catch (e) {
-    debugPrint('通知初始化失败（已安全降级）: $e');
+    DebugHelper.error('通知初始化失败: $e');
   }
 
+  // ---- 启动完成 ----
+  DebugHelper.track('进入主界面');
   runApp(const LiaoLeMeApp());
 }
 
@@ -37,7 +49,9 @@ Future<void> _initNotifications() async {
     iOS: iosSettings,
   );
 
+  DebugHelper.track('notif: 调用 initialize');
   await flutterLocalNotificationsPlugin.initialize(initSettings);
+  DebugHelper.track('notif: initialize 成功');
 
   // Android 通知渠道
   const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -52,23 +66,28 @@ Future<void> _initNotifications() async {
       .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
+  DebugHelper.track('notif: 创建通知渠道');
   await androidPlugin?.createNotificationChannel(channel);
+  DebugHelper.track('notif: 渠道创建成功');
 
   // Android 13+ 运行时通知权限请求
-  // 安全调用：HarmonyOS 兼容（Platform.isAndroid 可能返回 true 但请求不支持）
+  DebugHelper.track('notif: 请求通知权限（try）');
   try {
     if (Platform.isAndroid) {
       await androidPlugin?.requestNotificationsPermission();
+      DebugHelper.track('notif: 权限请求完成');
     }
-  } catch (_) {
-    // HarmonyOS 兼容：忽略通知权限请求失败
+  } catch (e) {
+    DebugHelper.warn('通知权限请求异常: $e');
   }
 
   // 调度每日通知
+  DebugHelper.track('notif: 调度每日通知（try）');
   try {
     await scheduleDailyNotification();
+    DebugHelper.track('notif: 通知调度成功');
   } catch (e) {
-    debugPrint('通知调度失败（已安全降级）: $e');
+    DebugHelper.error('通知调度失败: $e');
   }
 }
 
