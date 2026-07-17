@@ -212,6 +212,7 @@ Future<void> scheduleDailyNotification() async {
     DebugHelper.track('notif: periodicallyShow 成功');
   } catch (e) {
     DebugHelper.error('通知调度失败: $e');
+    rethrow;
   }
 }
 
