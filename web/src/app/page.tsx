@@ -694,6 +694,24 @@ export default function Home() {
               <p className="text-xs sm:text-sm text-muted-foreground">
                 © 2024 aoye666 · MIT License
               </p>
+              <p className="text-xs text-muted-foreground/70 mt-2">
+                本项目的 AI API 支持由
+                <a
+                  href="https://tokeness.io"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 ml-1 hover:text-foreground transition-colors"
+                >
+                  <img
+                    src="https://docs.tokeness.io/logo.svg"
+                    alt="Tokeness"
+                    height="16"
+                    className="inline-block"
+                  />
+                  Tokeness.io
+                </a>
+                &nbsp;赞助提供。
+              </p>
             </div>
             <div className="flex items-center gap-6 sm:gap-8">
               <Link
