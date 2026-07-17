@@ -38,6 +38,9 @@ jobs:
       - name: Setup signing keystore
         run: echo "${{ secrets.LIAOLEME_KEYSTORE }}" | base64 -d > android/app/liaoleme.jks
 
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons:main
+
       - run: flutter pub get
 
       - run: flutter build apk --release
