@@ -51,7 +51,7 @@ const features = [
 ];
 
 const stats = [
-  { label: "版本", value: "1.2.0" },
+  { label: "版本", value: "1.2." },
   { label: "Flutter", value: "3.7+" },
   { label: "平台", value: "Android" },
   { label: "协议", value: "MIT" },
@@ -237,7 +237,7 @@ export default function Home() {
               撸了么
             </span>
             <span className="text-[11px] text-muted-foreground font-mono border border-border rounded-full px-2 py-0.5 group-hover:border-foreground/30 transition-colors">
-              v1.2.0
+              v1.2.1
             </span>
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
@@ -293,7 +293,7 @@ export default function Home() {
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[0.95] mb-8">
                 撸了么
                 <br />
-                <span className="text-muted-foreground">What&apos;s done</span>
+                <span className="text-muted-foreground">What&apos;s lu-ed</span>
                 <br />
                 <span className="text-muted-foreground">today?</span>
               </h1>
