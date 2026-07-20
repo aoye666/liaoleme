@@ -1,4 +1,5 @@
 import re
+import os
 
 with open("android/app/build.gradle.kts", "r") as f:
     content = f.read()
@@ -54,3 +55,22 @@ with open("android/app/build.gradle.kts", "w") as f:
 
 print("\n=== Patched build.gradle.kts ===")
 print(open("android/app/build.gradle.kts").read())
+
+# Fix AndroidManifest.xml to set correct app name
+manifest_path = "android/app/src/main/AndroidManifest.xml"
+if os.path.exists(manifest_path):
+    with open(manifest_path, "r") as f:
+        manifest = f.read()
+
+    # Replace android:label value with correct app name
+    manifest = re.sub(
+        r'android:label="[^"]*"',
+        'android:label="录了么"',
+        manifest
+    )
+
+    with open(manifest_path, "w") as f:
+        f.write(manifest)
+
+    print("\n=== Patched AndroidManifest.xml ===")
+    print(open(manifest_path).read())

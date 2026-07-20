@@ -6,10 +6,15 @@ import 'dart:async';
 import 'theme.dart';
 import 'home_page.dart';
 import 'debug_helper.dart';
+import 'leaderboard_service.dart';
+import 'user_service.dart';
 
 // 全局通知插件实例
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
+
+// 排行榜服务可用状态（启动时检查，后端不可用则隐藏按钮）
+bool leaderboardAvailable = false;
 
 // ===== 主题状态管理 =====
 // 自动模式：根据系统时间切换（>=20:00 暗色, >=06:00 亮色）
@@ -80,7 +85,7 @@ void main() async {
   // ===== 调试系统初始化（最先启动，记录全局流程） =====
   await DebugHelper.enable();
   DebugHelper.track('调试系统启动');
-  DebugHelper.info('撸了么 暗色/亮色模式切换版启动');
+  DebugHelper.info('录了么 暗色/亮色模式切换版启动');
   DebugHelper.info('平台: ${Platform.isAndroid ? "Android" : "其他"}');
 
   // 初始化主题
@@ -105,6 +110,25 @@ void main() async {
     DebugHelper.track('通知初始化完成');
   } catch (e) {
     DebugHelper.error('通知初始化失败: $e');
+  }
+
+  // ---- 用户服务初始化（生成设备ID）----
+  DebugHelper.track('初始化用户服务');
+  try {
+    final systemUserId = await UserService.getSystemUserId();
+    DebugHelper.info('设备ID: $systemUserId');
+  } catch (e) {
+    DebugHelper.error('用户服务初始化失败: $e');
+  }
+
+  // ---- 排行榜服务健康检查 ----
+  DebugHelper.track('检查排行榜服务可用性');
+  try {
+    leaderboardAvailable = await LeaderboardService().checkHealth();
+    DebugHelper.info('排行榜服务可用: $leaderboardAvailable');
+  } catch (e) {
+    DebugHelper.warn('排行榜服务检查失败: $e');
+    leaderboardAvailable = false;
   }
 
   // ---- 启动完成 ----
@@ -203,7 +227,7 @@ Future<void> scheduleDailyNotification() async {
   try {
     await flutterLocalNotificationsPlugin.periodicallyShow(
       0,
-      '撸了么',
+      '录了么',
       '今天的结果是什么？来打个卡吧',
       RepeatInterval.daily,
       details,
@@ -228,7 +252,7 @@ class LiaoLeMeApp extends StatelessWidget {
         // 主题变化时更新系统UI
         _updateSystemUI(themeProvider.brightness);
         return MaterialApp(
-          title: '撸了么',
+          title: '录了么',
           debugShowCheckedModeBanner: false,
           theme: buildAppTheme(themeProvider.brightness),
           home: const HomePage(),

@@ -19,8 +19,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://liaoleme.aoye666.github.io"),
   title: {
-    default: "撸了么 — 每日打卡自控助手",
-    template: "%s | 撸了么",
+    default: "录了么 — 每日打卡自控助手",
+    template: "%s | 录了么",
   },
   description:
     "一个帮你自律的黑白风每日打卡应用。每日转盘、时间门控、热力图统计、毒鸡汤激励。由 Flutter 构建，开源免费。",
@@ -43,25 +43,25 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "撸了么 — 每日打卡自控助手",
+    title: "录了么 — 每日打卡自控助手",
     description:
       "一个帮你自律的黑白风每日打卡应用。每日转盘、时间门控、热力图统计、毒鸡汤激励。",
     type: "website",
     locale: "zh_CN",
-    siteName: "撸了么",
+    siteName: "录了么",
     url: "https://liaoleme.aoye666.github.io",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "撸了么 — 每日打卡自控助手",
+        alt: "录了么 — 每日打卡自控助手",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "撸了么 — 每日打卡自控助手",
+    title: "录了么 — 每日打卡自控助手",
     description: "一个帮你自律的黑白风每日打卡应用",
     images: ["/og-image.png"],
   },

@@ -27,16 +27,17 @@ class QuoteService {
   // 从 API 获取一言，失败则使用本地兜底
   Future<Map<String, String>> fetchQuote() async {
     try {
-      // Hitokoto 一言 API（免费，无需 Key）
+      // Hitokoto 一言 API（官方接口）
+      // c=k 哲学, c=d 文学, c=i 诗词
       final response = await http.get(
-        Uri.parse('https://v1.hitokoto.cn/?c=k&c=d&c=i&encode=json'),
+        Uri.parse('https://v1.hitokoto.cn/?c=k&c=d&c=i'),
       ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return {
           'text': data['hitokoto'] as String,
-          'from': (data['from'] ?? '未知').toString(),
+          'from': (data['from'] ?? '一言').toString(),
         };
       }
     } catch (e) {

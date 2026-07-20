@@ -8,7 +8,10 @@ import 'time_gated_input.dart';
 import 'stats_page.dart';
 import 'debug_helper.dart';
 import 'debug_page.dart';
-import 'main.dart' show themeProvider;
+import 'leaderboard_page.dart';
+import 'user_service.dart';
+import 'auth_page.dart';
+import 'main.dart' show themeProvider, leaderboardAvailable;
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,6 +32,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String? _checkinMethod;
   bool _isSpinning = false;
   int _todayCount = 0;
+
+  // 用户状态
+  bool _isLoggedIn = false;
+  String? _nickname;
 
   // 调试入口 — 标题连击计数
   int _titleTapCount = 0;
@@ -93,8 +100,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         DebugHelper.info('今日未打卡');
         DebugHelper.track('_loadTodayStatus: 未打卡');
       }
+
+      await _loadUserStatus();
     } catch (e) {
       DebugHelper.error('加载今日状态失败: $e');
+    }
+  }
+
+  Future<void> _loadUserStatus() async {
+    try {
+      final loggedIn = await UserService.isLoggedIn();
+      final nickname = await UserService.getNickname();
+      setState(() {
+        _isLoggedIn = loggedIn;
+        _nickname = nickname;
+      });
+    } catch (e) {
+      DebugHelper.error('加载用户状态失败: $e');
+    }
+  }
+
+  Future<void> _navigateToAuth() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AuthPage()),
+    );
+    if (result == true) {
+      await _loadUserStatus();
     }
   }
 
@@ -307,7 +339,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ),
             const SizedBox(width: AppSpacing.sm),
             const Text(
-              '撸了么',
+              '录了么',
               style: AppText.title,
             ),
           ],
@@ -330,6 +362,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               MaterialPageRoute(builder: (_) => const StatsPage()),
             );
           },
+        ),
+        // 排行榜按钮（后端可用且已登录时才显示）
+        if (leaderboardAvailable && _isLoggedIn)
+          _buildAppBarAction(
+            icon: Icons.leaderboard_rounded,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const LeaderboardPage()),
+              );
+            },
+          ),
+        // 登录/用户按钮
+        _buildAppBarAction(
+          icon: _isLoggedIn ? Icons.person_rounded : Icons.login_rounded,
+          onPressed: _navigateToAuth,
         ),
         // 调试按钮
         _buildAppBarAction(

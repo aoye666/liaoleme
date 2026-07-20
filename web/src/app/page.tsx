@@ -58,7 +58,7 @@ const stats = [
 ];
 
 const steps = [
-  { num: "01", title: "打开 App", desc: "每日打开「撸了么」，一切从简" },
+  { num: "01", title: "打开 App", desc: "每日打开「录了么」，一切从简" },
   { num: "02", title: "转动转盘", desc: "转动转盘或直接点击按钮完成打卡" },
   { num: "03", title: "查看统计", desc: "热力图记录你的每一天，看见进步" },
 ];
@@ -152,7 +152,7 @@ function DeviceMockup() {
             <div className="px-4 pt-4 pb-2">
               {/* Title */}
               <div className="text-center mb-4">
-                <div className="font-mono text-sm font-bold tracking-tight">撸了么</div>
+                <div className="font-mono text-sm font-bold tracking-tight">录了么</div>
                 <div className="font-mono text-[7px] text-foreground/40 mt-0.5">
                   What&apos;s done today?
                 </div>
@@ -234,7 +234,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group" aria-label="返回首页">
             <span className="font-mono text-lg font-bold tracking-tight">
-              撸了么
+              录了么
             </span>
             <span className="text-[11px] text-muted-foreground font-mono border border-border rounded-full px-2 py-0.5 group-hover:border-foreground/30 transition-colors">
               v1.2.1
@@ -291,7 +291,7 @@ export default function Home() {
 
             <RevealDiv delay={100}>
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight leading-[0.95] mb-8">
-                撸了么
+                录了么
                 <br />
                 <span className="text-muted-foreground">What&apos;s lu-ed</span>
                 <br />
@@ -689,29 +689,12 @@ export default function Home() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <div className="font-mono text-base sm:text-lg font-bold tracking-tight mb-1">
-                撸了么
+                录了么
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground">
                 © 2024 aoye666 · MIT License
               </p>
-              <p className="text-xs text-muted-foreground/70 mt-2">
-                本项目的 AI API 支持由
-                <a
-                  href="https://tokeness.io"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 ml-1 hover:text-foreground transition-colors"
-                >
-                  <img
-                    src="https://docs.tokeness.io/logo.svg"
-                    alt="Tokeness"
-                    height="16"
-                    className="inline-block"
-                  />
-                  Tokeness.io
-                </a>
-                &nbsp;赞助提供。
-              </p>
+
             </div>
             <div className="flex items-center gap-6 sm:gap-8">
               <Link
