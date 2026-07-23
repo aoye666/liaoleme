@@ -79,6 +79,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://liaoleme.aoye666.github.io",
   },
+  verification: {
+    other: {
+      "msvalidate.01": "7B98E673AC8B2BC131FD06B2C13B8E59",
+    },
+  },
 };
 
 export default function RootLayout({
