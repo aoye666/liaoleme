@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'dart:io';
 import 'dart:async';
 import 'theme.dart';
@@ -82,11 +83,17 @@ final themeProvider = ThemeProvider();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // macOS 有原生 sqflite 插件，只有 Windows/Linux 需要换成 FFI 工厂
+  if (Platform.isWindows || Platform.isLinux) {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+  }
+
   // ===== 调试系统初始化（最先启动，记录全局流程） =====
   await DebugHelper.enable();
   DebugHelper.track('调试系统启动');
   DebugHelper.info('录了么 暗色/亮色模式切换版启动');
-  DebugHelper.info('平台: ${Platform.isAndroid ? "Android" : "其他"}');
+  DebugHelper.info('平台: ${Platform.operatingSystem}');
 
   // 初始化主题
   DebugHelper.info('当前模式: ${themeProvider.isDark ? "暗色" : "亮色"}');

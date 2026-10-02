@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 import 'debug_helper.dart';
 
 // 数据库助手类 - 单例模式，全局共享数据库连接
@@ -36,9 +39,19 @@ class DatabaseHelper {
     }
   }
 
+  // FFI 工厂的 getDatabasesPath() 会落到 .dart_tool 下，不适合装好的应用
+  Future<String> _databaseDirectory() async {
+    if (Platform.isWindows || Platform.isLinux) {
+      final directory = await getApplicationSupportDirectory();
+      await directory.create(recursive: true);
+      return directory.path;
+    }
+    return getDatabasesPath();
+  }
+
   // 初始化数据库 - 打开或创建数据库文件
   Future<Database> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
+    final dbPath = await _databaseDirectory();
     String path = join(dbPath, 'liaoleme.db');
     DebugHelper.info('数据库路径: $path');
     return await openDatabase(

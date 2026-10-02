@@ -1,0 +1,122 @@
+name: Build Desktop
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # 与 build.yml 保持一致：sqlite3 v3 的 build hooks 要求 Flutter 3.44+
+  FLUTTER_VERSION: "3.44.9"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build windows --release
+
+      - name: Package zip
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path pubspec.yaml -Pattern '^version:\s*([0-9][^+\s]*)').Matches[0].Groups[1].Value
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "liaoleme-windows-x64-v$version.zip" -Force
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: liaoleme-windows
+          path: liaoleme-windows-x64-*.zip
+
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install GTK build deps
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build linux --release
+
+      - name: Package tar.gz
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          tar -C build/linux/x64/release -czf "liaoleme-linux-x64-v$VERSION.tar.gz" bundle
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: liaoleme-linux
+          path: liaoleme-linux-x64-*.tar.gz
+
+  macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter build macos --release
+
+      - name: Package zip
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          ditto -c -k --keepParent build/macos/Build/Products/Release/liaoleme.app "liaoleme-macos-$(uname -m)-v$VERSION.zip"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: liaoleme-macos
+          path: liaoleme-macos-*.zip
+
+  release:
+    needs: [ windows, linux, macos ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: liaoleme-*
+          path: desktop-packages
+          merge-multiple: true
+
+      - name: Attach packages to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1)
+          TAG="v$VERSION"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "录了么 v$VERSION" --generate-notes
+          fi
+          for package in desktop-packages/*; do
+            gh release upload "$TAG" "$package" --clobber
+          done

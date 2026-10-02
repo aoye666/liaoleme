@@ -1,7 +1,7 @@
 name: liaoleme
 description: "录了么 - 每日打卡自控助手"
 publish_to: 'none'
-version: 1.2.2+5
+version: 1.2.3+6
 
 environment:
   sdk: ^3.7.0
@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   sqflite: ^2.4.2
+  sqflite_common_ffi: ^2.4.3
+  sqlite3: ^3.0.0
   path: ^1.9.1
   path_provider: ^2.1.5
   fl_chart: ^0.70.2
